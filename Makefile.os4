@@ -1,0 +1,86 @@
+#
+# General Compiler Settings
+#
+
+CC=g++
+
+DEBUG=0
+
+FLAGS+= #-fpermissive
+CFLAGS=$(FLAGS) -Wno-write-strings -DUSE_SDL
+LDFLAGS=$(FLAGS)
+
+LIBS = -lSDL -lSDL_ttf -lfreetype -lopenal -lpthread
+
+PROFILE=0
+
+ifeq ($(DEBUG),1)
+	CFLAGS+= -O0 -g
+else
+	CFLAGS+=-O3 -Winit-self
+endif
+
+ifeq ($(PROFILE),1)
+	ifneq ($(DEBUG),1)
+		CFLAGS+= -g
+	endif
+	CFLAGS+= -pg
+endif
+
+CFLAGS += -I. -ICommon -I/Code/git/glm
+
+ifeq ($(DEBUG),1)
+	CFLAGS+= -DDEBUG_ON -DDEBUG_COMP -DDEBUG_SPOTFX_SOUND -DDEBUG_VIEWPORT
+endif
+
+BIN=stuntcarracer
+
+
+INC=$(wildcard *.h)
+SRC=$(wildcard *.cpp)
+OBJ=$(patsubst %.cpp,%.o,$(SRC))
+
+DEPS=$(OBJ:.o=.d)
+
+# Create dependency files in obj/, also create obj/ if not exist
+%.d : %.cpp #| $(OBJDIR)
+	$(CC) -MM -MP -MT $(@:.d=.o) -o $@ $< $(CFLAGS)
+
+all: $(BIN)
+
+
+$(BIN): $(OBJ)
+	$(CC) -o $(BIN) $(OBJ) $(LDFLAGS) $(LIBS)
+
+$(OBJ): $(INC)
+
+%.o: %.cpp
+	$(CC) -o $@ -c $< $(CFLAGS)
+
+clean:
+	$(RM) $(OBJ) $(BIN)
+
+check:
+	@echo
+	@echo "INC = $(INC)"
+	@echo
+	@echo "SRC = $(SRC)"
+	@echo
+	@echo "OBJ = $(OBJ)"
+	@echo
+	@echo "DEBUG = $(DEBUG)"
+	@echo "PROFILE = $(PROFILE)"
+	@echo "HAVE_GLES = $(HAVE_GLES)"
+	@echo "SDL = $(SDL)"
+	@echo "SDL_ = $(SDL_)"
+	@echo
+	@echo "CC = $(CC)"
+	@echo "BIN = $(BIN)"
+	@echo "CFLAGS = $(CFLAGS)"
+	@echo "LDFLAGS = $(LDFLAGS)"
+	@echo "LIB = $(LIB)"
+	@echo
+
+ifneq ($(MAKECMDGOALS),clean)
+-include $(DEPS)
+endif
