@@ -1782,9 +1782,12 @@ bool process_events()
 					break;
 #endif
 				case SDLK_F2:
+#ifndef __amigaos4__
+// FIXME: causes crash somewhere in MiniGL?
 					++bTrackDrawMode;
 					if (bTrackDrawMode > 1) bTrackDrawMode = 0;
 					DXUTReset3DEnvironment();
+#endif
 					break;
 
 				case SDLK_F4:
