@@ -1,5 +1,5 @@
-#ifdef linux
-
+#ifdef USE_SDL
+#ifndef __amigaos4__
 #include "dx_linux.h"
 #include <SDL/SDL.h>
 #include <AL/al.h>
@@ -472,5 +472,5 @@ void sound_release_buffer( sound_buffer_t * buffer )
 	//printf("sound_release_buffer: buffers %d sources %d playing %d\n",
 	//			stats.buffers,stats.sources,stats.playing);
 }
-
+#endif
 #endif // SOUND_OPENAL

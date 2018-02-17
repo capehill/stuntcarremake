@@ -34,7 +34,7 @@ struct UTVERTEX
     DWORD color;		// The vertex diffuse color value
 };
 */
-#ifndef linux
+#ifndef USE_SDL
 // Untransformed coloured textured vertex
 struct UTVERTEX
 {

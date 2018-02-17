@@ -38,7 +38,7 @@ extern bool bTestKey;
 /*	========= */
 /*	Constants */
 /*	========= */
-#ifdef linux
+#ifdef USE_SDL
 #undef FALSE
 #undef TRUE
 #endif
@@ -130,19 +130,19 @@ unsigned char opponents_speed_values[NUM_TRACKS][MAX_PIECES_PER_TRACK] =
 	}
 };
 
-WCHAR *opponentNames[NUM_OPPONENTS] =
+char *opponentNames[NUM_OPPONENTS] =
 {
-	L"Hot Rod     ",
-	L"Whizz Kid   ",
-	L"Bad Guy     ",
-	L"The Dodger  ",
-	L"Big Ed      ",
-	L"Max Boost   ",
-	L"Dare Devil  ",
-	L"High Flyer  ",
-	L"Bully Boy   ",
-	L"Jumping Jack",
-	L"Road Hog    "
+	"Hot Rod     ",
+	"Whizz Kid   ",
+	"Bad Guy     ",
+	"The Dodger  ",
+	"Big Ed      ",
+	"Max Boost   ",
+	"Dare Devil  ",
+	"High Flyer  ",
+	"Bully Boy   ",
+	"Jumping Jack",
+	"Road Hog    "
 };
 
 extern IDirectSoundBuffer8 *HitCarSoundBuffer;

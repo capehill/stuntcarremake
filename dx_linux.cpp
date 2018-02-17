@@ -1,4 +1,4 @@
-#ifdef linux
+#ifdef USE_SDL
 #include "dx_linux.h"
 
 const char* BitMapRessourceName(const char* name)
@@ -23,53 +23,64 @@ void IDirect3DTexture9::LoadTexture(const char* name)
 {
 	if (texID) glDeleteTextures(1, &texID);
 	glGenTextures(1, &texID);
-	SDL_Surface *img = IMG_Load(BitMapRessourceName(name));
-	if(!img) {
+	//SDL_Surface *img = IMG_Load(BitMapRessourceName(name));
+
+	FILE* file = fopen("atlas.bin", "rb");
+
+    if (!file) {
 		printf("Warning, image \"%s\" => \"%s\" not loaded\n", name, BitMapRessourceName(name));
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 		return;
 	}
-	GLint intfmt = img->format->BytesPerPixel;
-	GLenum fmt = GL_RGBA;
-	switch (intfmt) {
-    case 1:
-        fmt = GL_ALPHA;
-        break;
-    case 3:     // no alpha channel
-        if (img->format->Rmask == 0x000000ff)
-            fmt = GL_RGB;
-        else
-            fmt = GL_BGR;
-        break;
-    case 4:     // contains an alpha channel
-        if (img->format->Rmask == 0x000000ff)
-            fmt = GL_RGBA;
-        else
-            fmt = GL_BGRA;
-        break;
-	}
-	w2 = w = img->w;
-	h2 = h = img->h;
-	// will handle non-pot2 texture later? or resize the texture to POT?
-	/*w2 = NP2(w);
-	h2 = NP2(h);
-	wf = (float)w2 / (float)w;
-	hf = (float)h2 / (float)h;*/
-	Bind();
-	// ugly... Just blindly load the texture without much check!
-	glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_WRAP_S , GL_CLAMP_TO_EDGE );
-	glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_WRAP_T , GL_CLAMP_TO_EDGE );
-	glTexImage2D(GL_TEXTURE_2D, 0, intfmt, w2, h2, 0, fmt, GL_UNSIGNED_BYTE, NULL);
-	// simple and hugly way to make the texture upside down...
-	for (int i = 0; i< h ; i++) {
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, (h-1)-i, w, 1, fmt, GL_UNSIGNED_BYTE, img->pixels+(img->pitch*i));
-	}
-	UnBind();
-	if (img) SDL_FreeSurface(img);
+
+    w = w2 = 1024;
+    h = h2 = 1024;
+    int pitch = 4 * w;
+
+    char* buf = (char*)malloc(pitch * h);
+
+    if (buf) {
+        for (int y = 0; y < h; y++) {
+            Uint32* ptr = (Uint32*)(buf + y * pitch);
+
+            for (int x = 0; x < w; x++) {
+                Uint32 col;
+
+                fread(&col, sizeof(col), 1, file);
+                ptr[x] = SDL_SwapBE32(col);
+            }
+        }
+
+    	Bind();
+
+    	// ugly... Just blindly load the texture without much check!
+    	glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , GL_LINEAR);
+    	glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , GL_LINEAR);
+    	glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_WRAP_S , GL_CLAMP_TO_EDGE );
+    	glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_WRAP_T , GL_CLAMP_TO_EDGE );
+    	
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
+    	// simple and hugly way to make the texture upside down...
+    	for (int i = 0; i < h; i++) {
+    		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, (h-1)-i, w, 1, GL_RGBA, GL_UNSIGNED_BYTE, buf + (pitch * i));
+    	}
+
+    	UnBind();
+
+        free(buf);
+    } else {
+        printf("malloc failed\n");
+    }
+
+    printf("%d %d %d\n", w, h, pitch);
+
+    fclose(file);
 }
 
+#ifdef __amigaos4__
+typedef unsigned ALuint;
+#endif
 
 struct sound_buffer_t {
 	ALuint id;
@@ -97,6 +108,28 @@ void sound_position( sound_source_t * s, float x, float y, float z, float min_di
 
 void sound_set_position( sound_source_t * s, long newpos );
 long sound_get_position( sound_source_t * s );
+
+#ifdef __amigaos4__
+sound_buffer_t * sound_load(void* data, int size, int bits, int sign, int channels, int freq) { return NULL; }
+sound_source_t * sound_source( sound_buffer_t * buffer ) { return NULL; }
+void sound_play( sound_source_t * s ) {}
+void sound_play_looping( sound_source_t * s ) {}
+bool sound_is_playing( sound_source_t * s ) { return true; }
+void sound_stop( sound_source_t * s ) {}
+void sound_release_source( sound_source_t * s ) {}
+void sound_release_buffer( sound_buffer_t * s ) {}
+void sound_set_frequency( sound_source_t * source, long frequency ) {}
+void sound_set_pitch( sound_source_t * s, float pitch ) {}
+void sound_volume( sound_source_t * s, long decibels ) {}
+void sound_pan( sound_source_t * s, long pan ) {}
+void sound_position( sound_source_t * s, float x, float y, float z, float min_distance, float max_distance ) {}
+
+void sound_set_position( sound_source_t * s, long newpos ) {}
+long sound_get_position( sound_source_t * s ) { return 0; }
+
+bool sound_init( void ) { return true; }
+void sound_destroy( void ) {}
+#endif
 
 int npot(int n) {
 	int i= 1;
@@ -737,17 +770,21 @@ HRESULT IDirect3DDevice9::SetTextureStageState(DWORD Stage, D3DTEXTURESTAGESTATE
 
 HRESULT IDirect3DDevice9::SetTexture(DWORD Sampler, IDirect3DTexture9 *pTexture)
 {
+#ifndef __amigaos4__
 	if(Sampler) {
 		glActiveTexture(GL_TEXTURE0+Sampler);
 		glClientActiveTexture(GL_TEXTURE0+Sampler);
 	}
+#endif
 
 	pTexture->Bind();
 
+#ifndef __amigaos4__
 	if(Sampler) {
 		glActiveTexture(GL_TEXTURE0);
 		glClientActiveTexture(GL_TEXTURE0);
 	}
+#endif
 	return S_OK;
 }
 
@@ -817,6 +854,38 @@ HRESULT IDirect3DVertexBuffer9::Release() {
 	return S_OK;
 }
 
+static SDL_Surface* ConvertToRGBA(SDL_Surface* in) {
+
+    SDL_Surface* out = in;
+
+    if (in) {
+        SDL_PixelFormat pf;
+
+        pf.palette = NULL;
+        pf.BitsPerPixel = 32;
+        pf.BytesPerPixel = 4;
+
+        pf.Amask = 0x000000FF;
+        pf.Rmask = 0xFF000000;
+        pf.Gmask = 0x00FF0000;
+        pf.Bmask = 0x0000FF00;
+
+        pf.Aloss = pf.Rloss = pf.Gloss = pf.Bloss = 0;
+
+        pf.Ashift = 24;
+        pf.Rshift = 16;
+        pf.Gshift = 8;
+        pf.Bshift = 0;
+
+        out = SDL_ConvertSurface(in, &pf, 0);
+
+        if (out) {
+            SDL_FreeSurface(in);
+        }
+    }
+
+    return out;
+}
 
 CDXUTTextHelper::CDXUTTextHelper(TTF_Font* font, GLuint sprite, int size) : 
 	m_sprite(sprite), m_size(size), m_posx(0), m_posy(0)
@@ -837,11 +906,15 @@ CDXUTTextHelper::CDXUTTextHelper(TTF_Font* font, GLuint sprite, int size) :
 	free(tmp);
 	SDL_Color forecol = {255,255,255,255};
 	m_inv = 1.0/(float)m_sizew;
+
 	for(int i=0; i<16; i++) {
 		for(int j=0; j<16; j++) {
 			char text[2] = {(char)(i*16+j), 0};
 			SDL_Surface* surf = TTF_RenderText_Blended(font, text, forecol);
-			if(surf) {
+
+            surf = ConvertToRGBA(surf);
+
+			if (surf) {
 				m_as[i*16+j] = surf->w;
 				glTexSubImage2D(GL_TEXTURE_2D, 0, j*m_fontsize, i*m_fontsize, surf->w, (surf->h>=m_fontsize)?m_fontsize-1:surf->h, GL_RGBA, GL_UNSIGNED_BYTE, surf->pixels);
 				SDL_FreeSurface(surf);
@@ -855,7 +928,11 @@ CDXUTTextHelper::CDXUTTextHelper(TTF_Font* font, GLuint sprite, int size) :
 
 CDXUTTextHelper::~CDXUTTextHelper()
 {
-	glDeleteTextures(1, &m_texture);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+    if (m_texture) {
+	    glDeleteTextures(1, &m_texture);
+    }
 }
 
 void CDXUTTextHelper::SetInsertionPos(int x, int y)
@@ -864,7 +941,11 @@ void CDXUTTextHelper::SetInsertionPos(int x, int y)
 	m_posy = y;
 }
 
+#ifdef __amigaos4__
+void CDXUTTextHelper::DrawTextLine(const char* line)
+#else
 void CDXUTTextHelper::DrawTextLine(const wchar_t* line)
+#endif
 {
 	// Draw it
 	glDisable(GL_DEPTH_TEST);
@@ -895,9 +976,19 @@ void CDXUTTextHelper::DrawTextLine(const wchar_t* line)
 	glDisable(GL_BLEND);
 	glDisable(GL_TEXTURE_2D);
 	glEnable(GL_DEPTH_TEST);
-
 }
 
+#ifdef __amigaos4__
+void CDXUTTextHelper::DrawFormattedTextLine(const char* line, ...)
+{
+	char buff[1000];
+	va_list args;
+  	va_start (args, line);
+	vsnprintf(buff, sizeof(buff), line, args);
+    DrawTextLine(buff);
+	va_end (args);
+}
+#else
 void CDXUTTextHelper::DrawFormattedTextLine(const wchar_t* line, ...)
 {
 	wchar_t buff[1000];
@@ -907,6 +998,7 @@ void CDXUTTextHelper::DrawFormattedTextLine(const wchar_t* line, ...)
 	DrawTextLine(buff);
 	va_end (args);
 }
+#endif
 
 void CDXUTTextHelper::SetForegroundColor(D3DXCOLOR clr)
 {

@@ -793,15 +793,17 @@ static void AddQuad(TRANSFORMEDTEXVERTEX *pVertices, float x1, float y1, float x
 	cockpit_vtx += 3;
 }
 
-#ifdef linux
+#ifdef USE_SDL
 extern int GL_MSAA;
 #endif
 
 void DrawCockpit (IDirect3DDevice9 *pd3dDevice)
 {
-#ifdef linux
+#ifdef USE_SDL
+#ifndef __amigaos4__
 	if(GL_MSAA)
 		glDisable(GL_MULTISAMPLE);
+#endif
 #endif
 	// Prepare Cockpit drawing
 	TRANSFORMEDTEXVERTEX *pVertices;
@@ -897,8 +899,10 @@ void DrawCockpit (IDirect3DDevice9 *pd3dDevice)
 	pd3dDevice->SetRenderState( D3DRS_ZENABLE, TRUE );
 	pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 	//pd3dDevice->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_DISABLE);
-#ifdef linux
+#ifdef USE_SDL
+#ifndef __amigaos4__
 	if(GL_MSAA)
 		glEnable(GL_MULTISAMPLE);
+#endif
 #endif
 }

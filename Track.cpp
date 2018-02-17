@@ -1198,11 +1198,11 @@ static void GetRotatedPieceXZ( COORD_XZ coord,
 							   long *x,
 							   long *z );
 
-static void ConvertAmigaPieceXZ( unsigned char *amiga,
+static void ConvertAmigaPieceXZ( unsigned char *amiga_piece,
 								 COORD_XZ *dest,
 								 long size );
 
-static void ConvertAmigaPieceY( AMIGA_PIECE_Y *amiga,
+static void ConvertAmigaPieceY( AMIGA_PIECE_Y *amiga_piece,
 								COORD_Y *dest );
 
 static long CoordVisible( long *xptr,
@@ -1222,7 +1222,7 @@ static void UpdateDrawBridgeYCoords( long piece,
 									 long direction );
 
 static long ReadAmigaTrackData( long track );
-static void *GetTRACKResource( HMODULE hModule, LPCWSTR lpResName );
+static void *GetTRACKResource( HMODULE hModule, char* lpResName );
 
 /*	======================================================================================= */
 /*	Function:		GetTrackName															*/
@@ -1230,17 +1230,17 @@ static void *GetTRACKResource( HMODULE hModule, LPCWSTR lpResName );
 /*	Description:	Provide name of required Track ID										*/
 /*	======================================================================================= */
 
-WCHAR *GetTrackName( long track )
+char *GetTrackName( long track )
 {
-static WCHAR trackNames[][32] =
-    					   {L"Little Ramp",
-    						L"Stepping Stones",
-    						L"Hump Back",
-    						L"Big Ramp",
-    						L"Ski Jump",
-       						L"Draw Bridge",
-    						L"High Jump",
-    						L"Roller Coaster"};
+static char trackNames[][32] =
+    					   {"Little Ramp",
+    						"Stepping Stones",
+    						"Hump Back",
+    						"Big Ramp",
+    						"Ski Jump",
+       						"Draw Bridge",
+    						"High Jump",
+    						"Roller Coaster"};
 
     return(trackNames[track]);
 }
@@ -1635,7 +1635,7 @@ static void ConvertAmigaPieceData( void )
 /*	Description:																			*/
 /*	======================================================================================= */
 
-static void ConvertAmigaPieceXZ( unsigned char *amiga,
+static void ConvertAmigaPieceXZ( unsigned char *amiga_piece,
 								 COORD_XZ *dest,
 								 long size )
 	{
@@ -1649,14 +1649,14 @@ static void ConvertAmigaPieceXZ( unsigned char *amiga,
 
 	for (i = 0; i < number; i++)
 		{
-		low = (char)*amiga++;
-		high = (char)*amiga++;
+		low = (char)*amiga_piece++;
+		high = (char)*amiga_piece++;
 
 		value = ((high & 0xff) << 8) | (low & 0xff);
 		x = (long)value;
 
-		low = (char)*amiga++;
-		high = (char)*amiga++;
+		low = (char)*amiga_piece++;
+		high = (char)*amiga_piece++;
 
 		value = ((high & 0xff) << 8) | (low & 0xff);
 		z = (long)value;
@@ -1673,7 +1673,7 @@ static void ConvertAmigaPieceXZ( unsigned char *amiga,
 /*	Description:																			*/
 /*	======================================================================================= */
 
-static void ConvertAmigaPieceY( AMIGA_PIECE_Y *amiga,
+static void ConvertAmigaPieceY( AMIGA_PIECE_Y *amiga_piece,
 								COORD_Y *dest )
 	{
 	long i, number;
@@ -1683,9 +1683,9 @@ static void ConvertAmigaPieceY( AMIGA_PIECE_Y *amiga,
 	long y, ya, yb;
 
 	// calculate number of co-ordinates
-	number = amiga->size / sizeof(char);
-	yptr = (char *)amiga->amigaY;
-	if (amiga->words == TRUE)
+	number = amiga_piece->size / sizeof(char);
+	yptr = (char *)amiga_piece->amigaY;
+	if (amiga_piece->words == TRUE)
 		{
 		number /= 2;	// half the number of co-ordinates, if words
 		for (i = 0; i < number; i++)
@@ -2589,15 +2589,15 @@ void ResetDrawBridge( void )
 
 static long ReadAmigaTrackData( long track )
 	{
-	static WCHAR track_resource_names[NUM_TRACKS][32] =
-												   {L"LittleRamp",
-													L"SteppingStones",
-													L"HumpBack",
-													L"BigRamp",
-													L"SkiJump",
-													L"DrawBridge",
-													L"HighJump",
-													L"RollerCoaster"};
+	static char track_resource_names[NUM_TRACKS][32] =
+												   {"LittleRamp",
+													"SteppingStones",
+													"HumpBack",
+													"BigRamp",
+													"SkiJump",
+													"DrawBridge",
+													"HighJump",
+													"RollerCoaster"};
 	static char *track_buffer_ptrs[NUM_TRACKS];
 
 /*
@@ -2627,7 +2627,7 @@ static long ReadAmigaTrackData( long track )
 		for (i = 0; i < NUM_TRACKS; i++)
 			{
 			if ((buffer = (char *)GetTRACKResource(NULL, track_resource_names[i])) == NULL) {
-				printf("Error loading Track %S\n", track_resource_names[i]);
+				printf("Error loading Track %s\n", track_resource_names[i]);
 				return(FALSE);
 			}
 
@@ -2706,14 +2706,16 @@ static long ReadAmigaTrackData( long track )
 /*	Description:	Locates and loads into global memory the requested track data file		*/
 /*	======================================================================================= */
 
-static void *GetTRACKResource( HMODULE hModule, LPCWSTR lpResName )
+static void *GetTRACKResource( HMODULE hModule, char* lpResName )
 	{
 	void		*pTRACKBytes;
-#ifdef linux
-const WCHAR* resname[] = {L"LITTLERAMP", L"STEPPINGSTONES", L"HUMPBACK", L"BIGRAMP", L"SKIJUMP", L"DRAWBRIDGE", L"HIGHJUMP", L"ROLLERCOASTER", 0};
-const char* filename[] = {"Tracks/LittleRamp.bin", "Tracks/SteppingStones.bin", "Tracks/HumpBack.bin", "Tracks/BigRamp.bin", "Tracks/SkiJump.bin", "Tracks/DrawBridge.bin", "Tracks/HighJump.bin", "Tracks/RollerCoaster.bin"};
+#ifdef USE_SDL
+    const char* resname[] = {"LITTLERAMP", "STEPPINGSTONES", "HUMPBACK", "BIGRAMP", "SKIJUMP", "DRAWBRIDGE", "HIGHJUMP", "ROLLERCOASTER", 0};
+    const char* filename[] = {"Tracks/LittleRamp.bin", "Tracks/SteppingStones.bin", "Tracks/HumpBack.bin", "Tracks/BigRamp.bin", "Tracks/SkiJump.bin", "Tracks/DrawBridge.bin", "Tracks/HighJump.bin", "Tracks/RollerCoaster.bin"};
 	int i = 0;
-	while(resname[i] && wcscasecmp(resname[i], lpResName)) i++;
+
+	while(resname[i] && strcasecmp(resname[i], lpResName)) i++;
+
 	if(!resname[i]) return NULL;
 	// file found, get size, alloc size and read binary file
 	FILE* f = fopen(filename[i], "rb");

@@ -6,7 +6,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 //--------------------------------------------------------------------------------------
 #pragma once
-#ifdef linux
+#if defined (linux) || defined(__amigaos4__)
 #include "dx_linux.h"
 #else
 #ifndef DXSDK_STDAFX_H

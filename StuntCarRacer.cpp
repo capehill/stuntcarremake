@@ -21,8 +21,8 @@
 #include "wavefunctions.h"
 #include "Atlas.h"
 
-#ifdef linux
-#define STRING "%S"
+#ifdef USE_SDL
+#define STRING "%s"
 #else
 #define STRING L"%s"
 #endif
@@ -153,54 +153,54 @@ bool DSSetMode()
 
 	// Amiga channels 1 and 2 are right side, channels 0 and 3 are left side
 
-	if ((WreckSoundBuffer = MakeSoundBuffer(ds, L"WRECK")) == NULL)
+	if ((WreckSoundBuffer = MakeSoundBuffer(ds, "WRECK")) == NULL)
 		return FALSE;
 	WreckSoundBuffer->SetPan(DSBPAN_RIGHT);
 	WreckSoundBuffer->SetVolume(AmigaVolumeToDirectX(64));
 
-	if ((HitCarSoundBuffer = MakeSoundBuffer(ds, L"HITCAR")) == NULL)
+	if ((HitCarSoundBuffer = MakeSoundBuffer(ds, "HITCAR")) == NULL)
 		return FALSE;
 	HitCarSoundBuffer->SetFrequency(AMIGA_PAL_HZ / 238);
 	HitCarSoundBuffer->SetPan(DSBPAN_RIGHT);
 	HitCarSoundBuffer->SetVolume(AmigaVolumeToDirectX(56));
 
-	if ((GroundedSoundBuffer = MakeSoundBuffer(ds, L"GROUNDED")) == NULL)
+	if ((GroundedSoundBuffer = MakeSoundBuffer(ds, "GROUNDED")) == NULL)
 		return FALSE;
 	GroundedSoundBuffer->SetFrequency(AMIGA_PAL_HZ / 400);
 	GroundedSoundBuffer->SetPan(DSBPAN_RIGHT);
 
-	if ((CreakSoundBuffer = MakeSoundBuffer(ds, L"CREAK")) == NULL)
+	if ((CreakSoundBuffer = MakeSoundBuffer(ds, "CREAK")) == NULL)
 		return FALSE;
 	CreakSoundBuffer->SetFrequency(AMIGA_PAL_HZ / 238);
 	CreakSoundBuffer->SetPan(DSBPAN_RIGHT);
 	CreakSoundBuffer->SetVolume(AmigaVolumeToDirectX(64));
 
-	if ((SmashSoundBuffer = MakeSoundBuffer(ds, L"SMASH")) == NULL)
+	if ((SmashSoundBuffer = MakeSoundBuffer(ds, "SMASH")) == NULL)
 		return FALSE;
 	SmashSoundBuffer->SetFrequency(AMIGA_PAL_HZ / 280);
 	SmashSoundBuffer->SetPan(DSBPAN_LEFT);
 	SmashSoundBuffer->SetVolume(AmigaVolumeToDirectX(64));
 
-	if ((OffRoadSoundBuffer = MakeSoundBuffer(ds, L"OFFROAD")) == NULL)
+	if ((OffRoadSoundBuffer = MakeSoundBuffer(ds, "OFFROAD")) == NULL)
 		return FALSE;
 	OffRoadSoundBuffer->SetPan(DSBPAN_RIGHT);
 	OffRoadSoundBuffer->SetVolume(AmigaVolumeToDirectX(64));
 
-	if ((EngineSoundBuffers[0] = MakeSoundBuffer(ds, L"TICKOVER")) == NULL)
+	if ((EngineSoundBuffers[0] = MakeSoundBuffer(ds, "TICKOVER")) == NULL)
 		return FALSE;
-	if ((EngineSoundBuffers[1] = MakeSoundBuffer(ds, L"ENGINEPITCH2")) == NULL)
+	if ((EngineSoundBuffers[1] = MakeSoundBuffer(ds, "ENGINEPITCH2")) == NULL)
 		return FALSE;
-	if ((EngineSoundBuffers[2] = MakeSoundBuffer(ds, L"ENGINEPITCH3")) == NULL)
+	if ((EngineSoundBuffers[2] = MakeSoundBuffer(ds, "ENGINEPITCH3")) == NULL)
 		return FALSE;
-	if ((EngineSoundBuffers[3] = MakeSoundBuffer(ds, L"ENGINEPITCH4")) == NULL)
+	if ((EngineSoundBuffers[3] = MakeSoundBuffer(ds, "ENGINEPITCH4")) == NULL)
 		return FALSE;
-	if ((EngineSoundBuffers[4] = MakeSoundBuffer(ds, L"ENGINEPITCH5")) == NULL)
+	if ((EngineSoundBuffers[4] = MakeSoundBuffer(ds, "ENGINEPITCH5")) == NULL)
 		return FALSE;
-	if ((EngineSoundBuffers[5] = MakeSoundBuffer(ds, L"ENGINEPITCH6")) == NULL)
+	if ((EngineSoundBuffers[5] = MakeSoundBuffer(ds, "ENGINEPITCH6")) == NULL)
 		return FALSE;
-	if ((EngineSoundBuffers[6] = MakeSoundBuffer(ds, L"ENGINEPITCH7")) == NULL)
+	if ((EngineSoundBuffers[6] = MakeSoundBuffer(ds, "ENGINEPITCH7")) == NULL)
 		return FALSE;
-	if ((EngineSoundBuffers[7] = MakeSoundBuffer(ds, L"ENGINEPITCH8")) == NULL)
+	if ((EngineSoundBuffers[7] = MakeSoundBuffer(ds, "ENGINEPITCH8")) == NULL)
 		return FALSE;
 
 	for (i = 0; i < 8; i++)
@@ -289,7 +289,7 @@ static void FreeData( void )
 void GetScreenDimensions( long *screen_width,
 						  long *screen_height )
 	{
-#ifdef linux
+#ifdef USE_SDL
 	/*const SDL_VideoInfo* info = SDL_GetVideoInfo();
 	*screen_width = info->current_w;
 	*screen_height = info->current_h; */
@@ -455,7 +455,7 @@ static void EnforceConstantFrameRate( long max_frame_rate )
 //--------------------------------------------------------------------------------------
 // Global variables
 //--------------------------------------------------------------------------------------
-#ifdef linux
+#ifdef USE_SDL
 TTF_Font *g_pFont = NULL;
 TTF_Font *g_pFontLarge = NULL;
 GLuint   g_pSprite = 0;	// Texture for batching text calls
@@ -465,7 +465,22 @@ ID3DXFont *g_pFontLarge = NULL;    // Font for drawing large text
 ID3DXSprite *g_pSprite = NULL;       // Sprite for batching draw text calls
 #endif
 
-#ifndef linux
+//
+CDXUTTextHelper *g_txtHelper;
+CDXUTTextHelper *g_txtHelperLarge;
+
+void InitTextHelper() {
+    g_txtHelper = new CDXUTTextHelper(g_pFont, g_pSprite, 15);
+    g_txtHelperLarge = new CDXUTTextHelper(g_pFontLarge, g_pSprite, 25);
+}
+
+void DestroyTextHelper() {
+    delete g_txtHelper;
+    delete g_txtHelperLarge;
+}
+//
+
+#ifdef _WIN32
 //--------------------------------------------------------------------------------------
 // Rejects any devices that aren't acceptable by returning false
 //--------------------------------------------------------------------------------------
@@ -614,7 +629,7 @@ void CreateBuffers(IDirect3DDevice9 *pd3dDevice)
 		printf("Error creating CarVertexBuffer\n");
 
 }
-#endif	//!linux
+#endif	//!USE_SDL
 /*	======================================================================================= */
 /*	Function:		CalcTrackMenuViewpoint													*/
 /*																							*/
@@ -1045,7 +1060,7 @@ D3DXMATRIX matRot, matTemp, matTrans, matView;
 		float ya = (((float)-viewpoint1_y_angle * 2 * D3DX_PI) / 65536.0f);
 		float za = (((float)-viewpoint1_z_angle * 2 * D3DX_PI) / 65536.0f);
 		// Produce and combine the rotation matrices
-#ifdef linux
+#ifdef USE_SDL
 		D3DXMatrixRotationY(&matTemp, ya + D3DX_PI);
 		D3DXMatrixMultiply(&matRot, &matRot, &matTemp);
 		D3DXMatrixRotationX(&matTemp, -xa);
@@ -1062,7 +1077,7 @@ D3DXMATRIX matRot, matTemp, matTrans, matView;
 #endif
 		// Combine the rotation and translation matrices to complete the world matrix
 		D3DXMatrixMultiply(&matView, &matTrans, &matRot);
-#ifdef linux
+#ifdef USE_SDL
 		D3DXMatrixScaling(&matTrans, +1, -1, +1);
 		D3DXMatrixMultiply(&matView, &matView, &matTrans);
 #endif
@@ -1079,7 +1094,7 @@ D3DXMATRIX matRot, matTemp, matTrans, matView;
 /*																							*/
 /*	Description:	Output track menu text													*/
 /*	======================================================================================= */
-#ifdef linux
+#ifdef USE_SDL
 #define FIRSTMENU SDLK_1
 #define STARTMENU SDLK_s
 #else
@@ -1092,18 +1107,18 @@ static void HandleTrackMenu( CDXUTTextHelper &txtHelper )
 	long i, track_number;
 	UINT firstMenuOption, lastMenuOption;
 	txtHelper.SetInsertionPos( 2, 15*8 );
-	txtHelper.DrawTextLine( L"Choose track :-" );
+	txtHelper.DrawTextLine( "Choose track :-" );
 
 	for (i = 0, firstMenuOption = FIRSTMENU; i < NUM_TRACKS; i++)
 		{
-		txtHelper.DrawFormattedTextLine( L"'%d' -  " STRING, (i+1), GetTrackName(i) );
+		txtHelper.DrawFormattedTextLine( "'%d' -  " STRING, (i+1), GetTrackName(i) );
 		}
 	lastMenuOption = i + FIRSTMENU - 1;
 
 	// output instructions
 	const D3DSURFACE_DESC *pd3dsdBackBuffer = DXUTGetBackBufferSurfaceDesc();
 	txtHelper.SetInsertionPos( 2, pd3dsdBackBuffer->Height-15*8 );
-	txtHelper.DrawFormattedTextLine( L"Current track - " STRING L".  Press 'S' to select, Escape to quit", (TrackID == NO_TRACK ? L"None" : GetTrackName(TrackID)));
+	txtHelper.DrawFormattedTextLine( "Current track - " STRING ".  Press 'S' to select, Escape to quit", (TrackID == NO_TRACK ? "None" : GetTrackName(TrackID)));
 
 	if ((keyPress >= firstMenuOption) && (keyPress <= lastMenuOption))
 		{
@@ -1114,7 +1129,7 @@ static void HandleTrackMenu( CDXUTTextHelper &txtHelper )
 #if defined(DEBUG) || defined(_DEBUG)
 			fprintf(out, "Failed to convert track %d\n", track_number);
 #endif
-			MessageBox(NULL, L"Failed to convert track", L"Error", MB_OK);	//temp
+			MessageBox(NULL, "Failed to convert track", "Error", MB_OK);  //temp
 			return;
 			}
 
@@ -1123,7 +1138,7 @@ static void HandleTrackMenu( CDXUTTextHelper &txtHelper )
 #if defined(DEBUG) || defined(_DEBUG)
 			fprintf(out, "Failed to create track vertex buffer %d\n", track_number);
 #endif
-			MessageBox(NULL, L"Failed to create track vertex buffer", L"Error", MB_OK);	//temp
+			MessageBox(NULL, "Failed to create track vertex buffer", "Error", MB_OK); //temp
 			return;
 			}
 
@@ -1154,18 +1169,18 @@ static void HandleTrackPreview( CDXUTTextHelper &txtHelper )
 	// output instructions
 	const D3DSURFACE_DESC *pd3dsdBackBuffer = DXUTGetBackBufferSurfaceDesc();
 	txtHelper.SetInsertionPos( 2, pd3dsdBackBuffer->Height-15*9 );
-	txtHelper.DrawFormattedTextLine( L"Selected track - " STRING L".  Press 'S' to start game, 'M' for track menu, Escape to quit", (TrackID == NO_TRACK ? L"None" : GetTrackName(TrackID)));
-	txtHelper.DrawTextLine( L"(Press F4 to change scenery, F9 / F10 to adjust frame rate)" );
+	txtHelper.DrawFormattedTextLine( "Selected track - " STRING ".  Press 'S' to start game, 'M' for track menu, Escape to quit", (TrackID == NO_TRACK ? "None" : GetTrackName(TrackID)));
+	txtHelper.DrawTextLine( "(Press F4 to change scenery, F9 / F10 to adjust frame rate)" );
 
 	txtHelper.SetInsertionPos( 2, pd3dsdBackBuffer->Height-15*6 );
-	txtHelper.DrawTextLine( L"Keyboard controls during game :-" );
+	txtHelper.DrawTextLine( "Keyboard controls during game :-" );
 	#ifdef PANDORA
-	txtHelper.DrawTextLine( L"  DPad = Steer, (X) = Accelerate, (B) = Brake, (R) = Nitro" );
+	txtHelper.DrawTextLine( "  DPad = Steer, (X) = Accelerate, (B) = Brake, (R) = Nitro" );
 	#else
-	txtHelper.DrawTextLine( L"  S = Steer left, D = Steer right, Enter = Accelerate, Space = Brake" );
+	txtHelper.DrawTextLine( "  S = Steer left, D = Steer right, Enter = Accelerate, Space = Brake" );
 	#endif
-	txtHelper.DrawTextLine( L"  R = Point car in opposite direction, P = Pause, O = Unpause" );
-	txtHelper.DrawTextLine( L"  M = Back to track menu, Escape = Quit" );
+	txtHelper.DrawTextLine( "  R = Point car in opposite direction, P = Pause, O = Unpause" );
+	txtHelper.DrawTextLine( "  M = Back to track menu, Escape = Quit" );
 
 	if (keyPress == STARTMENU)
 		{
@@ -1192,7 +1207,7 @@ static void HandleTrackPreview( CDXUTTextHelper &txtHelper )
 //--------------------------------------------------------------------------------------
 extern long new_damage;
 extern long opponentsID;
-extern WCHAR *opponentNames[];
+extern char *opponentNames[];
 
 void RenderText( double fTime )
 {
@@ -1200,10 +1215,7 @@ void RenderText( double fTime )
     // and then it calls pFont->DrawText( m_pSprite, strMsg, -1, &rc, DT_NOCLIP, m_clr );
     // If NULL is passed in as the sprite object, then it will work fine however the 
     // pFont->DrawText() will not be batched together.  Batching calls will improve perf.
-#ifdef linux
-	static
-#endif
-    CDXUTTextHelper txtHelper( g_pFont, g_pSprite, 15 );
+    CDXUTTextHelper& txtHelper = *g_txtHelper;
 
     // Output statistics
     txtHelper.Begin();
@@ -1211,20 +1223,20 @@ void RenderText( double fTime )
 	if (bShowStats)
 	{
 		txtHelper.SetInsertionPos( 2, 0 );
-#ifndef linux
+#ifdef _WIN32
 		txtHelper.DrawTextLine( DXUTGetFrameStats(true) );
 		txtHelper.DrawTextLine( DXUTGetDeviceStats() );
 #else
 		
-		txtHelper.DrawFormattedTextLine( L"fTime: %0.1f  sin(fTime): %0.4f", fTime, sin(fTime) );
+		txtHelper.DrawFormattedTextLine( "fTime: %0.1f  sin(fTime): %0.4f", fTime, sin(fTime) );
 #endif
 
 #if defined(DEBUG) || defined(_DEBUG)
 		// Output VALUE1, VALUE, VALUE3
-		txtHelper.DrawFormattedTextLine( L"V1: %08x, V2: %08x, V3: %08x", VALUE1, VALUE2, VALUE3 );
+		txtHelper.DrawFormattedTextLine( "V1: %08x, V2: %08x, V3: %08x", VALUE1, VALUE2, VALUE3 );
 #else
 		// Output version
-		txtHelper.DrawTextLine( L"Version 1.0" );
+		txtHelper.DrawTextLine( "Version 1.0" );
 #endif
 	}
 
@@ -1244,24 +1256,28 @@ void RenderText( double fTime )
 		case GAME_OVER:
 			// Show car speed, damage and race details
 			const D3DSURFACE_DESC *pd3dsdBackBuffer = DXUTGetBackBufferSurfaceDesc();
-			WCHAR lapText[3] = L"  ";
+			char lapText[3] = "  ";
 			// Output opponent's name for four seconds at race start
 			if (((DXUTGetTime() - gameStartTime) < 4.0) && (opponentsID != NO_OPPONENT))
 			{
 				txtHelper.SetInsertionPos( 250, pd3dsdBackBuffer->Height-15*20 );
-				txtHelper.DrawFormattedTextLine( L"Opponent: " STRING, opponentNames[opponentsID] );
+				txtHelper.DrawFormattedTextLine( "Opponent: " STRING, opponentNames[opponentsID] );
 			}
 			txtHelper.SetInsertionPos( 2, pd3dsdBackBuffer->Height-15*2 );
 			if (lapNumber[PLAYER] > 0)
-				StringCchPrintf( lapText, 3, L"%d", lapNumber[PLAYER] );
+#ifdef __amigaos4__
+            snprintf(lapText, sizeof(lapText), "%d", lapNumber[PLAYER]);
+#else
+			StringCchPrintf( lapText, 3, "%d", lapNumber[PLAYER] );
+#endif
 			txtHelper.SetForegroundColor( D3DXCOLOR( 0.0f, 0.0f, 0.0f, 1.0f ) );
 			txtHelper.SetInsertionPos( 75, pd3dsdBackBuffer->Height-52 );
-			txtHelper.DrawFormattedTextLine( L"L" STRING L"        B%02d", lapText, boostReserve );
+			txtHelper.DrawFormattedTextLine( "L" STRING "        B%02d", lapText, boostReserve );
 			if (CalculateOpponentsDistance() >= 0)
 				txtHelper.SetInsertionPos( 72, pd3dsdBackBuffer->Height-29 );
 			else
 				txtHelper.SetInsertionPos( 76, pd3dsdBackBuffer->Height-29 );
-			txtHelper.DrawFormattedTextLine( L"         %+05d", CalculateOpponentsDistance() );
+			txtHelper.DrawFormattedTextLine( "         %+05d", CalculateOpponentsDistance() );
 			/*txtHelper.SetForegroundColor( D3DXCOLOR( 1.0f, 1.0f, 0.0f, 1.0f ) );
 			txtHelper.SetInsertionPos( 280, pd3dsdBackBuffer->Height-15*2 );
 			txtHelper.DrawFormattedTextLine( L"Damage: %d", new_damage );*/
@@ -1269,12 +1285,9 @@ void RenderText( double fTime )
 
 			if (raceFinished)
 			{
-				#ifdef linux
-				static
-				#endif
-				CDXUTTextHelper txtHelperLarge( g_pFontLarge, g_pSprite, 25 );
-
-				txtHelperLarge.Begin();
+                CDXUTTextHelper& txtHelperLarge = *g_txtHelperLarge;
+				
+                txtHelperLarge.Begin();
 
 				double currentTime = DXUTGetTime(), diffTime;
 				if (gameEndTime == 0.0)
@@ -1289,14 +1302,14 @@ void RenderText( double fTime )
 
 				if (GameMode == GAME_OVER)
 				{
-#ifdef 	linux
+#ifdef USE_SDL
 					txtHelperLarge.SetInsertionPos( 250, pd3dsdBackBuffer->Height-25*13 );
-					txtHelperLarge.DrawTextLine( L"GAME OVER" );
+					txtHelperLarge.DrawTextLine( "GAME OVER" );
 					txtHelperLarge.SetInsertionPos( 132, pd3dsdBackBuffer->Height-25*11 );
-					txtHelperLarge.DrawTextLine( L"Press 'M' for track menu" );
+					txtHelperLarge.DrawTextLine( "Press 'M' for track menu" );
 #else
 					txtHelperLarge.SetInsertionPos( 124, pd3dsdBackBuffer->Height-25*12 );
-					txtHelperLarge.DrawTextLine( L"GAME OVER: Press 'M' for track menu" );
+					txtHelperLarge.DrawTextLine( "GAME OVER: Press 'M' for track menu" );
 #endif
 				}
 				else
@@ -1311,9 +1324,9 @@ void RenderText( double fTime )
 					txtHelperLarge.SetInsertionPos( 250, pd3dsdBackBuffer->Height-25*12 );
 
 					if (raceWon)
-						txtHelperLarge.DrawTextLine( L"RACE WON" );
+						txtHelperLarge.DrawTextLine( "RACE WON" );
 					else
-						txtHelperLarge.DrawTextLine( L"RACE LOST" );
+						txtHelperLarge.DrawTextLine( "RACE LOST" );
 				}
 
 				txtHelperLarge.End();
@@ -1496,7 +1509,7 @@ HRESULT hr;
 	}
 }
 
-#ifndef linux
+#ifdef _WIN32
 //--------------------------------------------------------------------------------------
 // Handle messages to the application 
 //--------------------------------------------------------------------------------------
@@ -1909,6 +1922,7 @@ bool process_events()
 }
 
 int GL_MSAA = 0;
+
 int main(int argc, const char** argv)
 {
 	SDL_Surface *screen = NULL;
@@ -1993,7 +2007,9 @@ int main(int argc, const char** argv)
         	exit(-2);
 		}
     } else {
+#ifndef __amigaos4__
 		glEnable(GL_MULTISAMPLE);
+#endif
 	}
 #ifdef PANDORA
 	SDL_ShowCursor(SDL_DISABLE);
@@ -2041,6 +2057,8 @@ int main(int argc, const char** argv)
 	DSInit();
 	DSSetMode();
 
+    InitTextHelper();
+
 	bool run = true;
     while( run ) {
 		double fTime = DXUTGetTime();
@@ -2057,6 +2075,8 @@ int main(int argc, const char** argv)
 
 		fLastTime = fTime;
     }
+
+    DestroyTextHelper();
 
 	FreeData();
 

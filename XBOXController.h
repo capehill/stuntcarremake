@@ -5,7 +5,7 @@
 #define WIN32_LEAN_AND_MEAN
 
 // We need the Windows Header and the XInput Header
-#ifdef linux
+#ifdef USE_SDL
 #include <SDL/SDL.h>
 #define XINPUT_STATE int
 #else

@@ -14,7 +14,7 @@
 /
 *********************************************************************************/
 
-IDirectSoundBuffer8* MakeSoundBuffer(IDirectSound8 *ds, LPCWSTR lpSampleName)
+IDirectSoundBuffer8* MakeSoundBuffer(IDirectSound8 *ds, char* lpSampleName)
 	{
 	IDirectSoundBuffer8		*TempBuffer;
 	DSBUFFERDESC			dsbd;
@@ -56,14 +56,16 @@ IDirectSoundBuffer8* MakeSoundBuffer(IDirectSound8 *ds, LPCWSTR lpSampleName)
 /
 *********************************************************************************/
 
-void* GetWAVRes(HMODULE hModule, LPCWSTR lpResName)
+void* GetWAVRes(HMODULE hModule, char* lpResName)
 	{
 	void		*pRIFFBytes;
-#ifdef linux
-const WCHAR* resname[] = {L"TICKOVER", L"ENGINEPITCH2", L"ENGINEPITCH3", L"ENGINEPITCH4", L"ENGINEPITCH5", L"ENGINEPITCH6", L"ENGINEPITCH7", L"ENGINEPITCH8", L"GROUNDED", L"SMASH", L"CREAK", L"OFFROAD", L"WRECK", L"HITCAR", 0};
-const char* filename[] = {"Sounds/TickOver.wav", "Sounds/EnginePitch2.wav", "Sounds/EnginePitch3.wav", "Sounds/EnginePitch4.wav", "Sounds/EnginePitch5.wav", "Sounds/EnginePitch6.wav", "Sounds/EnginePitch7.wav", "Sounds/EnginePitch8.wav", "Sounds/Grounded.wav", "Sounds/Smash.wav", "Sounds/Creak.wav", "Sounds/OffRoad.wav", "Sounds/Wreck.wav", "Sounds/HitCar.wav"};
+#ifdef USE_SDL
+    const char* resname[] = {"TICKOVER", "ENGINEPITCH2", "ENGINEPITCH3", "ENGINEPITCH4", "ENGINEPITCH5", "ENGINEPITCH6", "ENGINEPITCH7", "ENGINEPITCH8", "GROUNDED", "SMASH", "CREAK", "OFFROAD", "WRECK", "HITCAR", 0};
+    const char* filename[] = {"Sounds/TickOver.wav", "Sounds/EnginePitch2.wav", "Sounds/EnginePitch3.wav", "Sounds/EnginePitch4.wav", "Sounds/EnginePitch5.wav", "Sounds/EnginePitch6.wav", "Sounds/EnginePitch7.wav", "Sounds/EnginePitch8.wav", "Sounds/Grounded.wav", "Sounds/Smash.wav", "Sounds/Creak.wav", "Sounds/OffRoad.wav", "Sounds/Wreck.wav", "Sounds/HitCar.wav"};
 	int i = 0;
-	while(resname[i] && wcscasecmp(resname[i], lpResName)) i++;
+
+	while(resname[i] && strcasecmp(resname[i], lpResName)) i++;
+
 	if(!resname[i]) return NULL;
 	// file found, get size, alloc size and read binary file
 	FILE* f = fopen(filename[i], "rb");

@@ -2,7 +2,7 @@
 #ifndef	_CAR
 #define	_CAR
 
-#ifdef linux
+#ifdef USE_SDL
 #include "dx_linux.h"
 #endif
 

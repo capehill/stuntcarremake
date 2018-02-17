@@ -70,7 +70,7 @@ extern bool bTestKey;
 /*	========= */
 /*	Constants */
 /*	========= */
-#ifndef linux
+#ifndef USE_SDL
 #define	FALSE	0
 #define	TRUE	1
 #endif
@@ -783,7 +783,7 @@ static void CarControl (DWORD input)
 	brake = (input & KEY_P1_BRAKE);
 
 	// if none of the resulting keys are pressed then read joystick
-#ifdef linux
+#ifdef USE_SDL
 #warning TODO
 #else
 	if( !input )

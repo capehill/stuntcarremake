@@ -13,8 +13,7 @@
 #include <string.h>
 #include <SDL/SDL.h>
 #include <SDL/SDL_ttf.h>
-#include <SDL/SDL_image.h>
-#include <AL/al.h>
+//#include <AL/al.h>
 #include <wchar.h>
 #define USEGLM
 #ifdef USEGLM
@@ -28,16 +27,16 @@
 #endif
 
 // DX -> OpenGL inspired by forsaken project
-typedef u_int32_t DWORD;
-typedef u_int8_t BYTE;
-typedef u_int16_t WORD;
-typedef u_int32_t BOOL;
+typedef uint32_t DWORD;
+//typedef uint8_t BYTE;
+//typedef uint16_t WORD;
+//typedef uint32_t BOOL;
 
 typedef const wchar_t* LPCWSTR;
 
 typedef void* HMODULE;
 
-typedef int32_t LONG;
+//typedef int32_t LONG;
 typedef float FLOAT;
 typedef double DOUBLE;
 typedef int32_t INT;
@@ -47,8 +46,8 @@ typedef BYTE *LPBYTE;
 #define D3DX_PI PI
 #define CALLBACK 
 
-#define TRUE true
-#define FALSE false
+//#define TRUE true
+//#define FALSE false
 
 #define S_OK	0x00000000
 #define E_ABORT	0x80004004
@@ -119,28 +118,23 @@ typedef BYTE *LPBYTE;
 // taken from d3d9.h
 typedef DWORD COLOR; // bgra originaly, rgba for OpenGL
 
-// bjd - taken from d3dtypes.h
-//#define RGBA_MAKE(r, g, b, a) 	((COLOR) (((a) << 24) | ((r) << 16) | ((g) << 8) | (b)))
-//#define	RGB_MAKE(r, g, b) 	((COLOR) (((r) << 16) | ((g) << 8) | (b)))
+#ifdef __amigaos4__
+#define RGBA_MAKE(r, g, b, a) 	((COLOR) (((r) << 24) | ((g) << 16) | ((b) << 8) | (a)))
+#define	RGB_MAKE(r, g, b) 	    ((COLOR)               (((r) << 16) | ((g) << 8) | (b)))
+#else
 #define RGBA_MAKE(r, g, b, a) 	((COLOR) (((a) << 24) | ((b) << 16) | ((g) << 8) | (r)))
-#define	RGB_MAKE(r, g, b) 	((COLOR) (((b) << 16) | ((g) << 8) | (r)))
-// COLOR is packed bgra, but converted to rgba for OpenGL
-#define RGBA_GETALPHA(rgb) 	((rgb) >> 24)
-//#define RGBA_GETRED(rgb) 	(((rgb) >> 16) & 0xff)
-#define RGBA_GETRED(rgb) 	((rgb) & 0xff)
-#define RGBA_GETGREEN(rgb) 	(((rgb) >> 8) & 0xff)
-//#define RGBA_GETBLUE(rgb) 	((rgb) & 0xff)
-#define RGBA_GETBLUE(rgb) 	(((rgb) >> 16) & 0xff)
+#define	RGB_MAKE(r, g, b) 	                  ((COLOR) (((b) << 16) | ((g) << 8) | (r)))
+#endif
 
 #define RENDERVAL(val) 		((float)val)
 
 #define D3DCOLOR_XRGB(r, g, b) 	RGBA_MAKE(r, g, b, 255)
 
 typedef struct tagPALETTEENTRY {
-  BYTE peRed;
-  BYTE peGreen;
-  BYTE peBlue;
-  BYTE peFlags;
+  uint32_t peRed;
+  uint32_t peGreen;
+  uint32_t peBlue;
+  uint32_t peFlags;
 } PALETTEENTRY;
 
 /*
@@ -822,8 +816,13 @@ public:
 	CDXUTTextHelper(TTF_Font* font, GLuint sprite, int size);
 	~CDXUTTextHelper();
   void SetInsertionPos(int x, int y);
+#ifdef __amigaos4__
+  void DrawTextLine(const char* line);
+  void DrawFormattedTextLine(const char* line, ...);
+#else
   void DrawTextLine(const wchar_t* line);
   void DrawFormattedTextLine(const wchar_t* line, ...);
+#endif
   void Begin() {};
   void End() {};
   void SetForegroundColor(D3DXCOLOR clr);

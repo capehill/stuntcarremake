@@ -40,7 +40,7 @@ void InitAtlasCoord() {
     for (int i=0; i<eLAST; i++) {
         atlas_tx1[i] = (float)x[i] / 1024.0f;
         atlas_tx2[i] = (float)(x[i]+w[i]) / 1024.0f;
-        #ifdef linux
+        #ifdef USE_SDL
         atlas_ty1[i] = 1.0f-(float)y[i] / 1024.0f;
         atlas_ty2[i] = 1.0f-(float)(y[i]+h[i]) / 1024.0f;
         #else

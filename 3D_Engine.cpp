@@ -1032,10 +1032,10 @@ void FreePolygonVertexBuffer (void)
 void DrawPolygon( POINT *pptr,
 				  long sides)
 {
-long i;
-IDirect3DDevice9 *pd3dDevice = DXUTGetD3DDevice();
+    long i;
+    IDirect3DDevice9 *pd3dDevice = DXUTGetD3DDevice();
 
-TRANSFORMEDVERTEX *pVertices;
+    TRANSFORMEDVERTEX *pVertices;
 
 	// finish if too many sides
 	if (sides > MAX_POLY_SIDES)
@@ -1045,15 +1045,14 @@ TRANSFORMEDVERTEX *pVertices;
 		return;
 
     for (i = 0; i < sides; i++)
-        {
-
+    {
 		pVertices[i].x = (float)pptr[i].x;      // screen x
 		pVertices[i].y = (float)pptr[i].y;      // screen y
 		pVertices[i].z = (float)0.5f;			// not needed unless Z buffering
 		pVertices[i].rhw = (float)1.0f;
-		pVertices[i].color = Fill_Colour;
+		pVertices[i].color = SDL_SwapBE32(Fill_Colour);
+    }
 
-        }
 	pPolygonVB->Unlock();
 
 	pd3dDevice->SetStreamSource( 0, pPolygonVB, 0, sizeof(TRANSFORMEDVERTEX) );
@@ -1061,12 +1060,11 @@ TRANSFORMEDVERTEX *pVertices;
 	pd3dDevice->DrawPrimitive( D3DPT_TRIANGLEFAN, 0, sides-2 );
 
 	return;
-	}
-
+}
 
 void DrawFilledRectangle( long x1, long y1, long x2, long y2, DWORD colour )
 {
-#ifdef linux
+#ifdef USE_SDL
 #ifdef HAVE_GLES
 	float vtx[4*2] = {
 		x1, y1,
@@ -1080,8 +1078,8 @@ void DrawFilledRectangle( long x1, long y1, long x2, long y2, DWORD colour )
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 	glDisableClientState(GL_VERTEX_ARRAY);
 #else
-	glColor4ubv((GLubyte*)&colour);
-	glBegin(GL_TRIANGLE_FAN);
+    glColor4ubv((GLubyte*)&colour);
+    glBegin(GL_TRIANGLE_FAN);
 		glVertex2i(x1, y1);
 		glVertex2i(x1, y2);
 		glVertex2i(x2, y2);

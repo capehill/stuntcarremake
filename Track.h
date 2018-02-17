@@ -6,7 +6,7 @@
 /*	Include files */
 /*	============= */
 #include "3D_Engine.h"
-#ifdef linux
+#ifdef USE_SDL
 #include "dx_linux.h"
 #endif
 
@@ -87,7 +87,7 @@ typedef struct
 /*	============================== */
 /*	External function declarations */
 /*	============================== */
-extern WCHAR *GetTrackName( long track );
+extern char *GetTrackName( long track );
 
 extern char GetPieceAngleAndTemplate( long piece );
 
