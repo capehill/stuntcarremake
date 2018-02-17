@@ -2059,6 +2059,10 @@ int main(int argc, const char** argv)
 
     InitTextHelper();
 
+    const char* name = "Stunt Car Remake";
+
+    SDL_WM_SetCaption(name, name);
+
 	bool run = true;
     while( run ) {
 		double fTime = DXUTGetTime();
