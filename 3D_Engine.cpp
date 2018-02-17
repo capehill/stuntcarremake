@@ -1050,7 +1050,7 @@ void DrawPolygon( POINT *pptr,
 		pVertices[i].y = (float)pptr[i].y;      // screen y
 		pVertices[i].z = (float)0.5f;			// not needed unless Z buffering
 		pVertices[i].rhw = (float)1.0f;
-		pVertices[i].color = SDL_SwapBE32(Fill_Colour);
+		pVertices[i].color = Fill_Colour;
     }
 
 	pPolygonVB->Unlock();
