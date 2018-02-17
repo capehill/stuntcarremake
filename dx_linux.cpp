@@ -21,20 +21,25 @@ static const char* filename[] = {
 
 void IDirect3DTexture9::LoadTexture(const char* name) 
 {
-	if (texID) glDeleteTextures(1, &texID);
-	glGenTextures(1, &texID);
-	//SDL_Surface *img = IMG_Load(BitMapRessourceName(name));
+	if (texID) {
+        glDeleteTextures(1, &texID);
+	}
+
+    glGenTextures(1, &texID);
 
 	FILE* file = fopen("atlas.bin", "rb");
 
     if (!file) {
-		printf("Warning, image \"%s\" => \"%s\" not loaded\n", name, BitMapRessourceName(name));
+		printf("Warning, 'atlas.bin' not loaded\n");
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 		return;
 	}
 
-    w = w2 = 1024;
-    h = h2 = 1024;
+    // Load a binary RGBA bigendian texture and feed it to OpenGL
+    const int size = 1024;
+
+    w = w2 = size;
+    h = h2 = size;
     int pitch = 4 * w;
 
     char* buf = (char*)malloc(pitch * h);
@@ -72,8 +77,6 @@ void IDirect3DTexture9::LoadTexture(const char* name)
     } else {
         printf("malloc failed\n");
     }
-
-    printf("%d %d %d\n", w, h, pitch);
 
     fclose(file);
 }
