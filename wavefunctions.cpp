@@ -161,13 +161,13 @@ BOOL UnpackWAVChunk( void *pRIFFBytes, LPWAVEFORMATEX *lpwfmx, LPBYTE *lpChunkDa
 	dwChunkBitsPtr = (DWORD*)pRIFFBytes;
 
 	// unpack the chunk ID
-	dwChunkID = *dwChunkBitsPtr++;	
+	dwChunkID = SDL_SwapLE32(*dwChunkBitsPtr++);
 
 	// unpack the size field
-	dwLength = *dwChunkBitsPtr++;
+	dwLength = SDL_SwapLE32(*dwChunkBitsPtr++);
 
 	// unpack the Form type
-	dwType = *dwChunkBitsPtr++;
+	dwType = SDL_SwapLE32(*dwChunkBitsPtr++);
 
 	// read the 4 byte identifier (FOURCC )
 
@@ -184,10 +184,10 @@ BOOL UnpackWAVChunk( void *pRIFFBytes, LPWAVEFORMATEX *lpwfmx, LPBYTE *lpChunkDa
 		{
 
 		// unpack the Form Type
-		dwType = *dwChunkBitsPtr++;
+		dwType = SDL_SwapLE32(*dwChunkBitsPtr++);
 
 		// unpack the size
-		dwLength = *dwChunkBitsPtr++;
+		dwLength = SDL_SwapLE32(*dwChunkBitsPtr++);
 
 		switch(dwType)
 			{
