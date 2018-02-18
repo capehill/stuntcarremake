@@ -1,5 +1,6 @@
 #ifdef USE_SDL
 #include "dx_linux.h"
+#include "AL/al.h"
 
 const char* BitMapRessourceName(const char* name)
 {
@@ -81,10 +82,6 @@ void IDirect3DTexture9::LoadTexture(const char* name)
     fclose(file);
 }
 
-#ifdef __amigaos4__
-typedef unsigned ALuint;
-#endif
-
 struct sound_buffer_t {
 	ALuint id;
 };
@@ -95,6 +92,7 @@ struct sound_source_t {
 	bool playing;
 };
 
+// TODO: move to a header file
 sound_buffer_t * sound_load(void* data, int size, int bits, int sign, int channels, int freq);
 sound_source_t * sound_source( sound_buffer_t * buffer );
 void sound_play( sound_source_t * s );
@@ -111,28 +109,6 @@ void sound_position( sound_source_t * s, float x, float y, float z, float min_di
 
 void sound_set_position( sound_source_t * s, long newpos );
 long sound_get_position( sound_source_t * s );
-
-#ifdef __amigaos4__
-sound_buffer_t * sound_load(void* data, int size, int bits, int sign, int channels, int freq) { return NULL; }
-sound_source_t * sound_source( sound_buffer_t * buffer ) { return NULL; }
-void sound_play( sound_source_t * s ) {}
-void sound_play_looping( sound_source_t * s ) {}
-bool sound_is_playing( sound_source_t * s ) { return true; }
-void sound_stop( sound_source_t * s ) {}
-void sound_release_source( sound_source_t * s ) {}
-void sound_release_buffer( sound_buffer_t * s ) {}
-void sound_set_frequency( sound_source_t * source, long frequency ) {}
-void sound_set_pitch( sound_source_t * s, float pitch ) {}
-void sound_volume( sound_source_t * s, long decibels ) {}
-void sound_pan( sound_source_t * s, long pan ) {}
-void sound_position( sound_source_t * s, float x, float y, float z, float min_distance, float max_distance ) {}
-
-void sound_set_position( sound_source_t * s, long newpos ) {}
-long sound_get_position( sound_source_t * s ) { return 0; }
-
-bool sound_init( void ) { return true; }
-void sound_destroy( void ) {}
-#endif
 
 int npot(int n) {
 	int i= 1;
