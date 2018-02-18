@@ -1,5 +1,4 @@
 #ifdef USE_SDL
-#ifndef __amigaos4__
 #include "dx_linux.h"
 #include <SDL/SDL.h>
 #include <AL/al.h>
@@ -45,7 +44,7 @@ static void print_info ( void )
 	// Check for EAX 2.0 support
 	printf("EAX2.0 support = %s\n",
 		alIsExtensionPresent("EAX2.0")?"true":"false");
-
+#if 0
 	if(alcIsExtensionPresent(NULL, "ALC_ENUMERATION_EXT") == AL_TRUE) 
 	{
 		printf("default playback: %s\n",alcGetString(NULL, ALC_DEFAULT_DEVICE_SPECIFIER));
@@ -72,9 +71,10 @@ static void print_info ( void )
 
 	printf("Default device: %s\n", alcGetString(NULL, ALC_DEFAULT_DEVICE_SPECIFIER));
 	printf("Default capture device: %s\n", (alcGetString(NULL, ALC_CAPTURE_DEFAULT_DEVICE_SPECIFIER)));
+#endif
 
 	device = alcGetContextsDevice(alcGetCurrentContext());
-
+#if 0
 	if ((error = alGetError()) != AL_NO_ERROR)
 		printf("error:  :%s\n", alGetString(error));
 
@@ -97,7 +97,7 @@ static void print_info ( void )
 
 	if ((error = alGetError()) != AL_NO_ERROR)
 		printf("error:  :%s\n", alGetString(error));
-
+#endif
 	printf("openal: info end\n");
 }
 
@@ -243,7 +243,7 @@ void sound_play( sound_source_t * source )
 	alSourcePlay( source->id );
 	//
 	//printf("sound_play: playing sound='%s' count=%d source=%d\n",
-	//	source->path, stats.playing, source);
+	//  source->path, stats.playing, source);
 }
 
 void sound_play_looping( sound_source_t * source )
@@ -296,7 +296,7 @@ sound_buffer_t * sound_load(void* data, int size, int bits, int sign, int channe
 {
 	ALenum error;
 	ALenum format;
-	u_int8_t *wav_buffer;
+	uint8_t *wav_buffer;
 	sound_buffer_t * buffer;
 
 	// create the buffer
@@ -319,7 +319,7 @@ sound_buffer_t * sound_load(void* data, int size, int bits, int sign, int channe
 		return NULL;
 	}
 
-    wav_buffer = (u_int8_t*)data;
+    wav_buffer = (uint8_t*)data;
 
     if(bits == 8) // 8 bit
 	{
@@ -345,7 +345,7 @@ sound_buffer_t * sound_load(void* data, int size, int bits, int sign, int channe
 		{
 			int i;
 			for(i = 0;i < (int) size/2;i++)
-				((u_int16_t*)wav_buffer)[i] ^= 0x8000; // converts U16 to S16
+				((uint16_t*)wav_buffer)[i] ^= 0x8000; // converts U16 to S16
 			printf("sound_buffer: converted u16 to s16\n");
 		}
 		if(channels == 1)
@@ -473,4 +473,3 @@ void sound_release_buffer( sound_buffer_t * buffer )
 	//			stats.buffers,stats.sources,stats.playing);
 }
 #endif
-#endif // SOUND_OPENAL
