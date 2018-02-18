@@ -2014,6 +2014,11 @@ int main(int argc, const char** argv)
 		glEnable(GL_MULTISAMPLE);
 #endif
 	}
+
+    const char* name = "Stunt Car Remake";
+
+    SDL_WM_SetCaption(name, name);
+
 #ifdef PANDORA
 	SDL_ShowCursor(SDL_DISABLE);
 	glViewport(80, 0, 640, 480);
@@ -2061,10 +2066,6 @@ int main(int argc, const char** argv)
 	DSSetMode();
 
     InitTextHelper();
-
-    const char* name = "Stunt Car Remake";
-
-    SDL_WM_SetCaption(name, name);
 
 	bool run = true;
     while( run ) {
