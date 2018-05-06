@@ -1135,7 +1135,7 @@ static void HandleTrackMenu( CDXUTTextHelper &txtHelper )
 	// output instructions
 	const D3DSURFACE_DESC *pd3dsdBackBuffer = DXUTGetBackBufferSurfaceDesc();
 	txtHelper.SetInsertionPos( 2+(wideScreen?10:0), pd3dsdBackBuffer->Height-15*8 );
-	txtHelper.DrawFormattedTextLine( "Current track - " STRING L".  Press 'S' to select, Escape to quit", (TrackID == NO_TRACK ? "None" : GetTrackName(TrackID)));
+	txtHelper.DrawFormattedTextLine( "Current track - " STRING ".  Press 'S' to select, Escape to quit", (TrackID == NO_TRACK ? "None" : GetTrackName(TrackID)));
 	txtHelper.DrawTextLine( "'L' to switch Super League On/Off");
 
 	if (((keyPress >= firstMenuOption) && (keyPress <= lastMenuOption)) || (keyPress == LEAGUEMENU))
@@ -1260,7 +1260,7 @@ void RenderText( double fTime )
 	if (bShowStats)
 	{
 		txtHelper.SetInsertionPos( 2+(wideScreen?10:0), 0 );
-#ifndef linux
+#ifndef USE_SDL
 		txtHelper.DrawTextLine( DXUTGetFrameStats(true) );
 		txtHelper.DrawTextLine( DXUTGetDeviceStats() );
 #else
@@ -1790,8 +1790,53 @@ INT WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR, int )
 
 #else
 
-bool process_events()
+static void handle_joystick(SDL_Joystick* joy)
 {
+        if (SDL_JoystickGetButton(joy, 0)) {
+            lastInput |= KEY_P1_BOOST;
+        }
+
+        const Sint16 AXIS_THRESHOLD = 30000;
+
+        const Sint16 xAxis = SDL_JoystickGetAxis(joy, 0);
+        const Sint16 yAxis = SDL_JoystickGetAxis(joy, 1);
+
+        if (xAxis < -AXIS_THRESHOLD) {
+            lastInput |= KEY_P1_LEFT;
+        } else if (xAxis > AXIS_THRESHOLD) {
+		lastInput |= KEY_P1_RIGHT;
+        }
+
+        if (yAxis < -AXIS_THRESHOLD) {
+            lastInput |= KEY_P1_ACCEL;
+        } else if (yAxis > AXIS_THRESHOLD) {
+            lastInput |= KEY_P1_BRAKE;
+        }
+
+        // D-pad
+        const Uint8 hat = SDL_JoystickGetHat(joy, 0);
+
+        if (hat & SDL_HAT_UP) {
+            lastInput |= KEY_P1_ACCEL;
+        }
+
+        if (hat & SDL_HAT_DOWN) {
+            lastInput |= KEY_P1_BRAKE;
+        }
+
+        if (hat & SDL_HAT_LEFT) {
+            lastInput |= KEY_P1_LEFT;
+        }
+
+        if (hat & SDL_HAT_RIGHT) {
+            lastInput |= KEY_P1_RIGHT;
+        }
+}
+
+bool process_events(SDL_Joystick* joystick)
+{
+    lastInput = 0;
+
     SDL_Event event;
     while( SDL_PollEvent( &event ) ) {
         switch( event.type ) {
@@ -1961,10 +2006,45 @@ bool process_events()
             return false;
         }
     }
+
+	if (joystick) {
+		handle_joystick(joystick);
+	}
+
 	return true;
 }
 
 int GL_MSAA = 0;
+
+static SDL_Joystick* open_joy()
+{
+    int num = SDL_NumJoysticks();
+    printf("Found %d joysticks\n", num);
+    SDL_Joystick* joy = NULL;
+
+    if (num > 0) {
+    	joy = SDL_JoystickOpen(0);
+
+    	if (joy) {
+        	printf("Opened joystick %d (%s) (%d axes, %d buttons)\n",
+            		0,
+            		SDL_JoystickName(0),
+            		SDL_JoystickNumAxes(joy),
+            		SDL_JoystickNumButtons(joy));
+    		} else {
+     		   	fprintf(stderr, "Failed to open joystick %d (%s)\n", 0, SDL_GetError());
+    	}
+    }
+
+    return joy;
+}
+
+static void close_joy(SDL_Joystick * joy)
+{
+    if (joy) {
+        SDL_JoystickClose(joy);
+    }
+}
 
 int main(int argc, const char** argv)
 {
@@ -1976,6 +2056,8 @@ int main(int argc, const char** argv)
 	atexit(SDL_Quit);
 
 	TTF_Init();
+
+	SDL_Joystick* joystick =open_joy();
 
 	// crude command line parameter reading
 	int nomsaa = 0;
@@ -2151,7 +2233,7 @@ int main(int argc, const char** argv)
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		double fTime = DXUTGetTime();
-		run = process_events();
+		run = process_events(joystick);
 		OnFrameMove( &pd3dDevice, fTime, fTime - fLastTime, NULL );
         OnFrameRender( &pd3dDevice, fTime, fTime - fLastTime, NULL );
 		SDL_GL_SwapBuffers();
@@ -2169,6 +2251,9 @@ int main(int argc, const char** argv)
 	FreeData();
 
 	sound_destroy();
+
+	close_joy(joystick);
+
 	TTF_Quit();
 	SDL_Quit();
 	
