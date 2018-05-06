@@ -136,6 +136,8 @@ extern IDirectSoundBuffer8 *CreakSoundBuffer;
 extern IDirectSoundBuffer8 *SmashSoundBuffer;
 extern IDirectSoundBuffer8 *OffRoadSoundBuffer;
 
+extern bool bSuperLeague;
+
 /*	=========== */
 /*	Static data */
 /*	=========== */
@@ -157,8 +159,8 @@ static long accelerate, brake;
 
 static long accelerating = FALSE;	// to remember previous control state
 
-static long engine_power = 240;		// (240 standard, 320 super)
-static long boost_unit_value = 16;	// (16 standard, 12 super)
+long engine_power = 240;		// (240 standard, 320 super)
+long boost_unit_value = 16;	// (16 standard, 12 super)
 
 static long left_right_value;
 static long engine_z_acceleration;
@@ -371,8 +373,8 @@ void ResetPlayer (void)
 
 	accelerating = FALSE;
 
-	engine_power = 240;		// (240 standard, 320 super)
-	boost_unit_value = 16;	// (16 standard, 12 super)
+	engine_power = (bSuperLeague)?320:240;		// (240 standard, 320 super)
+	boost_unit_value = (bSuperLeague)?12:16;	// (16 standard, 12 super)
 
 	// calculated
 	left_right_value = 0;
@@ -2068,11 +2070,11 @@ static void CalculateGravityAcceleration (void)
 /*	Description:	Calculate car acceleration caused by collision with other objects		*/
 /*	======================================================================================= */
 
-static long damaged_limit = 10;	// Actually track/league dependant (could add to track data)
+long damaged_limit = 10;	// Actually track/league dependant (could add to track data)
 
 	// NOTE: road_cushion_value is 0 for standard league and 1 for super league
 	//		 fourteen_frames_elapsed has value of 0 or -1 (set)
-static long road_cushion_value = 0, fourteen_frames_elapsed = 0;
+long road_cushion_value = 0, fourteen_frames_elapsed = 0;
 
 
 // following are only global due to use by two functions - could be passed in instead
@@ -2457,10 +2459,10 @@ static void CalculateTotalAcceleration (void)
 	// this probably simulates the effect of wind resistance and the
 	// car having reduced ability to accelerate as speed increases
 	//21/05/1998 - old method - if ((engine_z_acceleration > 0) && (player_z_speed >= 0))
-	reduction = ((engine_z_acceleration >> 8) | (player_z_speed >> 8)) & 0xff;
-	if ((reduction & 0x80) != 0x80)	// i.e. not negative
+	reduction = ((engine_z_acceleration / 256) | (player_z_speed / 256)) & 0xff;
+	if (!(reduction & 0x80))	// i.e. not negative
 		{
-		if ((engine_z_acceleration & 0xff) != 0)
+		if (engine_z_acceleration&0xff)
 			{
 			engine_z_acceleration -= reduction;
 			}
@@ -3655,11 +3657,11 @@ long CalculateDisplaySpeed (void)
 	long speed;
 
 	speed = player_z_speed;
-	if (speed < 0) speed = 0;
+	if (speed < 0x1100) speed = 0; // first few values are not displayed
 
 	speed = ((speed * 183) >> 15);
 
-	return(speed);
+	return(speed*200)>>7;	// on screen full 240 speed is 128 lenght, but first 40 are not displayed!
 	}
 
 /*	======================================================================================= */

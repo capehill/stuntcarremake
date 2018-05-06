@@ -37,6 +37,7 @@ extern long	VALUE1, VALUE2;
 /*	=========== */
 extern GameModeType GameMode;
 extern long bTrackDrawMode;
+extern bool bSuperLeague;
 
 unsigned char sections_car_can_be_put_on[] =
 {
@@ -76,7 +77,7 @@ static char Piece_X_Z_Position[MAX_PIECES_PER_TRACK];/* Little Ramp data, from b
 //*
 //* Bottom nibble is the near section piece to use.
 //
-static char Piece_Angle_And_Template[MAX_PIECES_PER_TRACK];/* Little Ramp data, from before it was loaded =
+char Piece_Angle_And_Template[MAX_PIECES_PER_TRACK];/* Little Ramp data, from before it was loaded =
 {
 	(char)0xa0,(char)0xa0,(char)0xa0,(char)0xa0,(char)0xa0,(char)0xa0,(char)0xa0,(char)0xa0,
 	(char)0xa0,(char)0xa0,(char)0x80,(char)0x86,(char)0x57,(char)0xc0,(char)0xe0,(char)0xe0,
@@ -1361,14 +1362,24 @@ long ConvertAmigaTrack( long track )
 		if (piece & 1)
 			{
 			// odd numbered section (light)
-			roadColour = SCR_BASE_COLOUR + 2;
-			sidesColour = SCR_BASE_COLOUR + 10;		// 8 for SUPER LEAGUE
+				if(bSuperLeague) {
+					roadColour = SCR_BASE_COLOUR + 17;
+					sidesColour = SCR_BASE_COLOUR + 16;
+				} else {
+					roadColour = SCR_BASE_COLOUR + 2;
+					sidesColour = SCR_BASE_COLOUR + 10;		// 8 for SUPER LEAGUE
+				}
 			}
 		else
 			{
 			// even numbered section (dark)
-			roadColour = SCR_BASE_COLOUR + 1;
-			sidesColour = SCR_BASE_COLOUR + 15;
+				if(bSuperLeague) {
+					roadColour = SCR_BASE_COLOUR + 18;
+					sidesColour = SCR_BASE_COLOUR + 15;
+				} else {
+					roadColour = SCR_BASE_COLOUR + 1;
+					sidesColour = SCR_BASE_COLOUR + 15;
+				}
 			}
 
 
@@ -1774,6 +1785,20 @@ BYTE roadColourIndex;
 					t = 1;
 				else
 					t = 3;
+			}
+			else if (roadColourIndex == SCR_BASE_COLOUR + 18)
+			{
+				if (rlc == 0)
+					t = 6+0;
+				else
+					t = 6+2;
+			}
+			else if (roadColourIndex == SCR_BASE_COLOUR + 17)	// lighter
+			{
+				if (rlc == 0)
+					t = 6+1;
+				else
+					t = 6+3;
 			}
 			else// if (roadColourIndex == SCR_BASE_COLOUR)	// black
 			{
@@ -2444,6 +2469,7 @@ extern long opponents_current_piece;	// use as opponents_road_section
 
 extern unsigned char opponents_speed_values[NUM_TRACKS][MAX_PIECES_PER_TRACK];
 
+//TODO: what are those value in SuperLeague mode? Seems to be the same, but need more checks
 // Opponent's speed values for driving up the Draw Bridge (one value for each height)
 static unsigned char TAB5a996[16] = {0xd2,0xbb,0xb7,0xb3,0xb1,0xad,0xab,0xa7,0xa6,0xa4,0xa2,0xa1,0x9f,0x9f,0x9f,0x9e};
 // Opponent's speed values for approaching the Draw Bridge
