@@ -15,6 +15,17 @@ enum eAtlas {
     eCockpitLeft,
     eCockpitRight,
     eCockpitBottom,
+    eCockpitWL,
+    eCockpitWR,
+    eHole2,
+    eNoHole2,
+    eCracking2,
+    eCockpitTop2,
+    eCockpitLeft2,
+    eCockpitRight2,
+    eCockpitBottom2,
+    eCockpitWL2,
+    eCockpitWR2,
     eEngine,
     eEngineFlames0,
     eEngineFlames1,
@@ -25,6 +36,10 @@ enum eAtlas {
     eRoadRedLight,
     eRoadBlack,
     eRoadWhite,
+    eRoadYellowDark2,
+    eRoadYellowLight2,
+    eRoadRedDark2,
+    eRoadRedLight2,
     eLAST
 };
 

@@ -32,7 +32,7 @@
 // Defines, constants, and global variables
 //-----------------------------------------------------------------------------
 
-#define DEFAULT_FRAME_GAP	(4)		// Used to limit frame rate.  Amiga StuntCarRacer uses value of 6 (called MIN.FRAMES)
+#define DEFAULT_FRAME_GAP	(6)		// 4 Used to limit frame rate.  Amiga StuntCarRacer uses value of 6 (called MIN.FRAMES)
 
 #define	HEIGHT_ABOVE_ROAD	(100)
 
@@ -55,7 +55,7 @@ IDirectSoundBuffer8 *EngineSoundBuffers[8] = {NULL};
 
 IDirect3DTexture9 *g_pAtlas = NULL;
 
-
+int wideScreen = 0;
 
 static long frameGap = DEFAULT_FRAME_GAP;
 static bool bFrameMoved = FALSE;
@@ -69,6 +69,7 @@ long bTrackDrawMode = 0;
 bool bOutsideView = FALSE;
 long engineSoundPlaying = FALSE;
 double gameStartTime, gameEndTime;
+bool bSuperLeague = FALSE;
 
 #if defined(DEBUG) || defined(_DEBUG)
 FILE *out;
@@ -83,6 +84,12 @@ extern long INITIALISE_PLAYER;
 extern bool raceFinished, raceWon;
 extern long lapNumber[];
 
+// League / Super League variable
+extern long damaged_limit;
+extern long road_cushion_value;
+extern long engine_power;
+extern long boost_unit_value;
+extern long opp_engine_power;
 
 //-----------------------------------------------------------------------------
 // Static variables
@@ -293,7 +300,7 @@ void GetScreenDimensions( long *screen_width,
 	/*const SDL_VideoInfo* info = SDL_GetVideoInfo();
 	*screen_width = info->current_w;
 	*screen_height = info->current_h; */
-	*screen_width = 640;
+	*screen_width = (wideScreen)?800:640;
 	*screen_height = 480;
 #else
 	const D3DSURFACE_DESC *desc;
@@ -308,7 +315,7 @@ void GetScreenDimensions( long *screen_width,
 // Colours
 //--------------------------------------------------------------------------------------
 
-#define NUM_PALETTE_ENTRIES     (42)
+#define NUM_PALETTE_ENTRIES     (42+6)
 //#define	PALETTE_COMPONENT_BITS	(8)		// bits per colour r/g/b component
 
 static PALETTEENTRY SCPalette[NUM_PALETTE_ENTRIES] =
@@ -354,13 +361,21 @@ static PALETTEENTRY SCPalette[NUM_PALETTE_ENTRIES] =
 		{0x55, 0xbb, 0xff},
 		{0x55, 0x99, 0xff},
 		{0x33, 0x55, 0x77},
-		{0x55, 0x00, 0x00},
-		{0x77, 0x33, 0x33},
+		{0x55, 0x00, 0x00}, // 9
+		{0x77, 0x33, 0x33},	//10
 		{0x99, 0x55, 0x55},
-		{0xdd, 0x99, 0x99},
+		{0xdd, 0x99, 0x99}, //12
 		{0x77, 0x77, 0x55},
 		{0xbb, 0xbb, 0xbb},
-		{0xff, 0xff, 0xff}
+		{0xff, 0xff, 0xff},
+
+		// extra track colours (altered super league)
+		{ 51,   51,  119},	// SCR_BASE_COLOUR+16
+		{119,  153,  119},
+		{ 85,  153,   85},
+		{0x00, 0x00, 0x55}, //19
+		{0x33, 0x33, 0x77},	//20
+		{0x99, 0x99, 0xdd}, //21
 	};
 
 
@@ -1097,16 +1112,18 @@ D3DXMATRIX matRot, matTemp, matTrans, matView;
 #ifdef USE_SDL
 #define FIRSTMENU SDLK_1
 #define STARTMENU SDLK_s
+#define LEAGUEMENU SDLK_l
 #else
 #define FIRSTMENU '1'
 #define STARTMENU 'S'
+#define LEAGUEMENU 'L'
 #endif
 
 static void HandleTrackMenu( CDXUTTextHelper &txtHelper )
 	{
 	long i, track_number;
 	UINT firstMenuOption, lastMenuOption;
-	txtHelper.SetInsertionPos( 2, 15*8 );
+	txtHelper.SetInsertionPos( 2+(wideScreen?10:0), 15*8 );
 	txtHelper.DrawTextLine( "Choose track :-" );
 
 	for (i = 0, firstMenuOption = FIRSTMENU; i < NUM_TRACKS; i++)
@@ -1117,12 +1134,18 @@ static void HandleTrackMenu( CDXUTTextHelper &txtHelper )
 
 	// output instructions
 	const D3DSURFACE_DESC *pd3dsdBackBuffer = DXUTGetBackBufferSurfaceDesc();
-	txtHelper.SetInsertionPos( 2, pd3dsdBackBuffer->Height-15*8 );
-	txtHelper.DrawFormattedTextLine( "Current track - " STRING ".  Press 'S' to select, Escape to quit", (TrackID == NO_TRACK ? "None" : GetTrackName(TrackID)));
+	txtHelper.SetInsertionPos( 2+(wideScreen?10:0), pd3dsdBackBuffer->Height-15*8 );
+	txtHelper.DrawFormattedTextLine( "Current track - " STRING L".  Press 'S' to select, Escape to quit", (TrackID == NO_TRACK ? "None" : GetTrackName(TrackID)));
+	txtHelper.DrawTextLine( "'L' to switch Super League On/Off");
 
-	if ((keyPress >= firstMenuOption) && (keyPress <= lastMenuOption))
+	if (((keyPress >= firstMenuOption) && (keyPress <= lastMenuOption)) || (keyPress == LEAGUEMENU))
 		{
-		track_number = keyPress - firstMenuOption;	// start at 0
+		if(keyPress == LEAGUEMENU) {
+			bSuperLeague = !bSuperLeague;
+			track_number = TrackID;
+			CreateCarVertexBuffer(DXUTGetD3DDevice());	// recreate car
+		} else 
+			track_number = keyPress - firstMenuOption;	// start at 0
 
 		if (! ConvertAmigaTrack(track_number))
 			{
@@ -1153,6 +1176,7 @@ static void HandleTrackMenu( CDXUTTextHelper &txtHelper )
 		bPlayerPaused = bOpponentPaused = FALSE;
 		keyPress = '\0';
 		}
+	
 
 	return;
 	}
@@ -1168,11 +1192,12 @@ static void HandleTrackPreview( CDXUTTextHelper &txtHelper )
 	{
 	// output instructions
 	const D3DSURFACE_DESC *pd3dsdBackBuffer = DXUTGetBackBufferSurfaceDesc();
-	txtHelper.SetInsertionPos( 2, pd3dsdBackBuffer->Height-15*9 );
-	txtHelper.DrawFormattedTextLine( "Selected track - " STRING ".  Press 'S' to start game, 'M' for track menu, Escape to quit", (TrackID == NO_TRACK ? "None" : GetTrackName(TrackID)));
+	txtHelper.SetInsertionPos( 2+(wideScreen?10:0), pd3dsdBackBuffer->Height-15*9 );
+	txtHelper.DrawFormattedTextLine( "Selected track - " STRING ".  Press 'S' to start game", (TrackID == NO_TRACK ? "None" : GetTrackName(TrackID)));
+	txtHelper.DrawTextLine( "'M' for track menu, Escape to quit");
 	txtHelper.DrawTextLine( "(Press F4 to change scenery, F9 / F10 to adjust frame rate)" );
 
-	txtHelper.SetInsertionPos( 2, pd3dsdBackBuffer->Height-15*6 );
+	txtHelper.SetInsertionPos( 2+(wideScreen?10:0), pd3dsdBackBuffer->Height-15*6 );
 	txtHelper.DrawTextLine( "Keyboard controls during game :-" );
 	#ifdef PANDORA
 	txtHelper.DrawTextLine( "  DPad = Steer, (X) = Accelerate, (B) = Brake, (R) = Nitro" );
@@ -1191,7 +1216,19 @@ static void HandleTrackPreview( CDXUTTextHelper &txtHelper )
 		ResetLapData(PLAYER);
 		gameStartTime = DXUTGetTime();
 		gameEndTime = 0;
-		boostReserve = StandardBoost;	// SuperBoost for super league
+		if(bSuperLeague) {
+			boostReserve = SuperBoost;
+			road_cushion_value = 1;
+			engine_power = 320;
+			boost_unit_value = 12;
+			opp_engine_power = 314;
+		} else {
+			boostReserve = StandardBoost;	// SuperBoost for super league
+			road_cushion_value = 0;
+			engine_power = 240;
+			boost_unit_value = 16;
+			opp_engine_power = 236;
+		}
 		boostUnit = 0;
 		bPlayerPaused = bOpponentPaused = FALSE;
 		keyPress = '\0';
@@ -1222,8 +1259,8 @@ void RenderText( double fTime )
 	txtHelper.SetForegroundColor( D3DXCOLOR( 1.0f, 1.0f, 0.0f, 1.0f ) );
 	if (bShowStats)
 	{
-		txtHelper.SetInsertionPos( 2, 0 );
-#ifdef _WIN32
+		txtHelper.SetInsertionPos( 2+(wideScreen?10:0), 0 );
+#ifndef linux
 		txtHelper.DrawTextLine( DXUTGetFrameStats(true) );
 		txtHelper.DrawTextLine( DXUTGetDeviceStats() );
 #else
@@ -1260,10 +1297,10 @@ void RenderText( double fTime )
 			// Output opponent's name for four seconds at race start
 			if (((DXUTGetTime() - gameStartTime) < 4.0) && (opponentsID != NO_OPPONENT))
 			{
-				txtHelper.SetInsertionPos( 250, pd3dsdBackBuffer->Height-15*20 );
+				txtHelper.SetInsertionPos( 250+(wideScreen?80:0), pd3dsdBackBuffer->Height-15*20 );
 				txtHelper.DrawFormattedTextLine( "Opponent: " STRING, opponentNames[opponentsID] );
 			}
-			txtHelper.SetInsertionPos( 2, pd3dsdBackBuffer->Height-15*2 );
+			txtHelper.SetInsertionPos( 2+(wideScreen?80:0), pd3dsdBackBuffer->Height-15*2 );
 			if (lapNumber[PLAYER] > 0)
 #ifdef __amigaos4__
             snprintf(lapText, sizeof(lapText), "%d", lapNumber[PLAYER]);
@@ -1271,16 +1308,15 @@ void RenderText( double fTime )
 			StringCchPrintf( lapText, 3, "%d", lapNumber[PLAYER] );
 #endif
 			txtHelper.SetForegroundColor( D3DXCOLOR( 0.0f, 0.0f, 0.0f, 1.0f ) );
-			txtHelper.SetInsertionPos( 75, pd3dsdBackBuffer->Height-52 );
+
+			txtHelper.SetInsertionPos( 75+(wideScreen?80:0), pd3dsdBackBuffer->Height-52 );
 			txtHelper.DrawFormattedTextLine( "L" STRING "        B%02d", lapText, boostReserve );
 			if (CalculateOpponentsDistance() >= 0)
-				txtHelper.SetInsertionPos( 72, pd3dsdBackBuffer->Height-29 );
+				txtHelper.SetInsertionPos( 72+(wideScreen?80:0), pd3dsdBackBuffer->Height-29 );
 			else
-				txtHelper.SetInsertionPos( 76, pd3dsdBackBuffer->Height-29 );
+				txtHelper.SetInsertionPos( 76+(wideScreen?80:0), pd3dsdBackBuffer->Height-29 );
 			txtHelper.DrawFormattedTextLine( "         %+05d", CalculateOpponentsDistance() );
-			/*txtHelper.SetForegroundColor( D3DXCOLOR( 1.0f, 1.0f, 0.0f, 1.0f ) );
-			txtHelper.SetInsertionPos( 280, pd3dsdBackBuffer->Height-15*2 );
-			txtHelper.DrawFormattedTextLine( L"Damage: %d", new_damage );*/
+
 			txtHelper.End();
 
 			if (raceFinished)
@@ -1302,13 +1338,13 @@ void RenderText( double fTime )
 
 				if (GameMode == GAME_OVER)
 				{
-#ifdef USE_SDL
-					txtHelperLarge.SetInsertionPos( 250, pd3dsdBackBuffer->Height-25*13 );
+#ifdef 	linux
+					txtHelperLarge.SetInsertionPos( 250+(wideScreen?80:0), pd3dsdBackBuffer->Height-25*13 );
 					txtHelperLarge.DrawTextLine( "GAME OVER" );
-					txtHelperLarge.SetInsertionPos( 132, pd3dsdBackBuffer->Height-25*11 );
+					txtHelperLarge.SetInsertionPos( 132+(wideScreen?80:0), pd3dsdBackBuffer->Height-25*11 );
 					txtHelperLarge.DrawTextLine( "Press 'M' for track menu" );
 #else
-					txtHelperLarge.SetInsertionPos( 124, pd3dsdBackBuffer->Height-25*12 );
+					txtHelperLarge.SetInsertionPos( 124+(wideScreen?80:0), pd3dsdBackBuffer->Height-25*12 );
 					txtHelperLarge.DrawTextLine( "GAME OVER: Press 'M' for track menu" );
 #endif
 				}
@@ -1321,7 +1357,7 @@ void RenderText( double fTime )
 					else
 						txtHelperLarge.SetForegroundColor( D3DXCOLOR( 0.0f, 0.0f, 0.0f, 1.0f ) );
 
-					txtHelperLarge.SetInsertionPos( 250, pd3dsdBackBuffer->Height-25*12 );
+					txtHelperLarge.SetInsertionPos( 250+(wideScreen?80:0), pd3dsdBackBuffer->Height-25*12 );
 
 					if (raceWon)
 						txtHelperLarge.DrawTextLine( "RACE WON" );
@@ -1856,6 +1892,8 @@ bool process_events()
 				case SDLK_RCTRL:
 #else
 				case SDLK_SPACE:
+				case SDLK_RSHIFT:
+				case SDLK_LSHIFT:
 #endif
 					lastInput |= KEY_P1_BOOST;
 					break;
@@ -1896,6 +1934,8 @@ bool process_events()
 				case SDLK_RCTRL:
 #else
 				case SDLK_SPACE:
+				case SDLK_RSHIFT:
+				case SDLK_LSHIFT:
 #endif
 					lastInput &= ~KEY_P1_BOOST;
 					break;
@@ -1940,6 +1980,7 @@ int main(int argc, const char** argv)
 	// crude command line parameter reading
 	int nomsaa = 0;
 	int fullscreen = 0;
+	int desktop = 0;
 	int givehelp = 0;
 
 	for (int i=1; i<argc; i++) {
@@ -1947,6 +1988,10 @@ int main(int argc, const char** argv)
 			fullscreen = 1;
 		else if(!strcmp(argv[i], "--fullscreen"))
 			fullscreen = 1;
+		else if(!strcmp(argv[i], "-d"))
+			desktop = 1;
+		else if(!strcmp(argv[i], "--desktop"))
+			desktop = 1;
 		else if(!strcmp(argv[i], "-n"))
 			nomsaa = 1;
 		else if(!strcmp(argv[i], "--nomsaa"))
@@ -1986,27 +2031,46 @@ int main(int argc, const char** argv)
 	}
 #endif
 	int flags = 0;
+	wideScreen = 0;
+	int screenH, screenW, screenX, screenY;
 	flags = SDL_OPENGL | SDL_DOUBLEBUF;
 	if(fullscreen)
 		flags |= SDL_FULLSCREEN;
 #ifdef PANDORA
 	flags |= SDL_FULLSCREEN;
-	screen = SDL_SetVideoMode( 800, 480, 32, flags );
+	screenW = 800; screenH = 480;
+#elif defined(CHIP)
+	flags |= SDL_FULLSCREEN;
+	screenW = 480; screenH = 272;
 #else
-	screen = SDL_SetVideoMode( 640, 480, 32, flags );
+	if(desktop || fullscreen) {
+		flags |= SDL_FULLSCREEN;
+		if(desktop) {
+			const SDL_VideoInfo* infos = SDL_GetVideoInfo();
+			screenW = infos->current_w;
+			screenH = infos->current_h;
+		} else {
+			screenW = 640;
+			screenH = 480;
+		}
+	} else {
+		screenW = 800;
+		screenH = 480;
+	}
 #endif
+	screen = SDL_SetVideoMode( screenW, screenH, 32, flags );
     if ( screen == NULL ) {
 		// fallback to no MSAA
 		GL_MSAA=0;
 		SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, 0);
 		SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, 0);
-#ifdef PANDORA
-		screen = SDL_SetVideoMode( 800, 480, 32, flags );
-#else
-		screen = SDL_SetVideoMode( 640, 480, 32, flags );
-#endif
+		screen = SDL_SetVideoMode( screenW, screenH, 32, flags );
     	if ( screen == NULL ) {
-			printf("Couldn't set 640x480x32 video mode: %s\n", SDL_GetError());
+#ifdef PANDORA
+			printf("Couldn't set 800x480x16 video mode: %s\n", SDL_GetError());
+#else
+			printf("Couldn't set %dx%dx32 video mode: %s\n", screenW, screenH, SDL_GetError());
+#endif
         	exit(-2);
 		}
     } else {
@@ -2019,15 +2083,27 @@ int main(int argc, const char** argv)
 
     SDL_WM_SetCaption(name, name);
 
-#ifdef PANDORA
-	SDL_ShowCursor(SDL_DISABLE);
-	glViewport(80, 0, 640, 480);
-#else
-	glViewport(0, 0, 640, 480);
-#endif
+	// automatic guess the scale
+	float screenScale = 1.;
+	if(screenW/640. < screenH/480.)
+		screenScale = screenW/640.;
+	else
+		screenScale = screenH/480.;
+	// is it a Wide screen ration?
+	if((screenW/screenScale - 640)>=80)
+		wideScreen=1;
+	screenX = (screenW-(wideScreen?800.:640.)*screenScale)/2.;
+	screenY = (screenH-480.*screenScale)/2.;
+	screenW = (wideScreen?800:640)*screenScale;
+	screenH = 480*screenScale;
+	if(flags&SDL_FULLSCREEN)
+		SDL_ShowCursor(SDL_DISABLE);
+	glViewport(screenX, screenY, screenW, screenH);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(0, 640, 480, 0, 0, FURTHEST_Z);
+	screenH = 480;
+	screenW = wideScreen?800:640;
+	glOrtho(0, screenW, screenH, 0, 0, FURTHEST_Z);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
@@ -2036,7 +2112,7 @@ int main(int argc, const char** argv)
 	IDirect3DDevice9 pd3dDevice;
 
     D3DXMATRIX matProj;
-	FLOAT fAspect = 640.0f / 480.0f;
+	FLOAT fAspect = screenW / 480.0f;
     D3DXMatrixPerspectiveFovLH( &matProj, D3DX_PI/4, fAspect, 0.5f, FURTHEST_Z );
     pd3dDevice.SetTransform( D3DTS_PROJECTION, &matProj );
 
@@ -2068,16 +2144,20 @@ int main(int argc, const char** argv)
     InitTextHelper();
 
 	bool run = true;
+	glClearColor(0,0,0,1);
+	double fTime;
+	fLastTime = fTime = DXUTGetTime();
     while( run ) {
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		double fTime = DXUTGetTime();
 		run = process_events();
 		OnFrameMove( &pd3dDevice, fTime, fTime - fLastTime, NULL );
         OnFrameRender( &pd3dDevice, fTime, fTime - fLastTime, NULL );
 		SDL_GL_SwapBuffers();
-		glClearColor(0,0,0,1);
-		glClear(GL_COLOR_BUFFER_BIT);
 
 		int32_t timetowait = (1.0f/50.0f - (fTime-fLastTime))*1000;
+		//int32_t timetowait = (1.0f/60.0f - (fTime-fLastTime))*1000;
 		if (timetowait>0)
 			SDL_Delay(timetowait);
 

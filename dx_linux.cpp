@@ -2,6 +2,8 @@
 #include "dx_linux.h"
 #include "AL/al.h"
 
+extern bool wideScreen;
+
 const char* BitMapRessourceName(const char* name)
 {
 static const char* resname[] = {
@@ -998,10 +1000,12 @@ IDirect3DDevice9 *DXUTGetD3DDevice()
 static D3DSURFACE_DESC d3dsurface_desc = {0}; 
 const D3DSURFACE_DESC * DXUTGetBackBufferSurfaceDesc()
 {
-	int vp[4];
+	/*int vp[4];
 	glGetIntegerv(GL_VIEWPORT, vp);
 	d3dsurface_desc.Width = vp[2];
-	d3dsurface_desc.Height = vp[3];
+	d3dsurface_desc.Height = vp[3];*/
+	d3dsurface_desc.Width = wideScreen?800:640;
+	d3dsurface_desc.Height = 480;
 	return &d3dsurface_desc;
 }
 

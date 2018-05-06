@@ -25,6 +25,9 @@ extern FILE *out;
 
 #define	MAX_VERTICES_PER_CAR	(142*3)
 
+extern bool bSuperLeague;
+extern int wideScreen;
+
 /*	=========== */
 /*	Static data */
 /*	=========== */
@@ -653,7 +656,10 @@ static COORD_3D car[16+8] = {
 /**/
 
 	// car left side
-	colour = SCRGB(SCR_BASE_COLOUR+12);
+	if(bSuperLeague)
+		colour = SCRGB(SCR_BASE_COLOUR+21);
+	else
+		colour = SCRGB(SCR_BASE_COLOUR+12);
 	StoreCarTriangle(&car[4+16], &car[5+16], &car[1+16], vertices, colour);
 	StoreCarTriangle(&car[4+16], &car[1+16], &car[0+16], vertices, colour);
 	// car right side
@@ -661,7 +667,10 @@ static COORD_3D car[16+8] = {
 	StoreCarTriangle(&car[3+16], &car[6+16], &car[7+16], vertices, colour);
 
 	// car back
-	colour = SCRGB(SCR_BASE_COLOUR+10);
+	if(bSuperLeague)
+		colour = SCRGB(SCR_BASE_COLOUR+20);
+	else
+		colour = SCRGB(SCR_BASE_COLOUR+10);
 	StoreCarTriangle(&car[0+16], &car[1+16], &car[2+16], vertices, colour);
 	StoreCarTriangle(&car[0+16], &car[2+16], &car[3+16], vertices, colour);
 	// car front
@@ -673,7 +682,10 @@ static COORD_3D car[16+8] = {
 	StoreCarTriangle(&car[1+16], &car[5+16], &car[6+16], vertices, colour);
 	StoreCarTriangle(&car[1+16], &car[6+16], &car[2+16], vertices, colour);
 	// car bottom
-	colour = SCRGB(SCR_BASE_COLOUR+9);
+	if(bSuperLeague)
+		colour = SCRGB(SCR_BASE_COLOUR+19);
+	else
+		colour = SCRGB(SCR_BASE_COLOUR+9);
 	StoreCarTriangle(&car[3+16], &car[7+16], &car[4+16], vertices, colour);
 	StoreCarTriangle(&car[3+16], &car[4+16], &car[0+16], vertices, colour);
 	#undef vertices
@@ -811,13 +823,14 @@ void DrawCockpit (IDirect3DDevice9 *pd3dDevice)
 	if( FAILED( pCockpitVB->Lock( 0, 0, (void**)&pVertices, 0 ) ) )
 		return;
 	old_leftwheel = (front_left_amount_below_road>>6);
-	float X1 = 0.0f+31.f*2, X2 = 31.f*2+2*24.0f;
+	float Wide = wideScreen?40.f:0.f;
+	float X1 = (Wide+31.f)*2, X2 = (Wide+31.f)*2+2*24.0f;
 	float Y1 = 480.0f-56.0f*2.4f-20*2.4f, Y2 = 480.0f-20*2.4f;
 	Y1-=old_leftwheel;
 	Y2-=old_leftwheel;
 	AddQuad(pVertices, X1, Y1, X2, Y2, 0.8f, eWheel0+(leftwheel_angle>>16)%6, 0,1);
 	old_rightwheel = (front_right_amount_below_road>>6);
-	X1 = 640.f-31.f*2 - 24.f*2, X2 = 640.f-31.f*2;
+	X1 = Wide*2.f+640.f-31.f*2.f - 24.f*2, X2 = Wide*2.f+640.f-31.f*2.f;
 	Y1 = 480.0f-56.0f*2.4f-20*2.4f, Y2 = 480.0f-20*2.4f;
 	Y1-=old_rightwheel;
 	Y2-=old_rightwheel;
@@ -830,22 +843,26 @@ void DrawCockpit (IDirect3DDevice9 *pd3dDevice)
 		const int engineframes[8] = {0,0,0,1,2,2,2,1};
 		engineFrame = eEngineFlames0 + engineframes[frame>>1];
 	}
-	AddQuad(pVertices, 42.0f*2.0f, 123.0f*2.4f, (42.0f+235.0f)*2.0f, (123.f+35.0f)*2.4f, 0.89f, engineFrame, 0,1);
-	AddQuad(pVertices, 41.f*2.f, 0.0f, (41.f+238.f)*2.f, 16.f*2.4f, 0.9f, eCockpitTop, 0,1);
-	AddQuad(pVertices, 0.0f, 0.0f, 41.f*2.f, 153.f*2.4f, 0.9f, eCockpitLeft, 0,1);
-	AddQuad(pVertices, 279.f*2.f, 0.0f, 640.0f, 153.f*2.4f, 0.9f, eCockpitRight, 0,1);
-	AddQuad(pVertices, 0.0f, 153.f*2.4f, 640.0f, 480.0f, 0.9f, eCockpitBottom, 0,1);
+	if(wideScreen) {
+		AddQuad(pVertices, 0.0f, 99.f*2.4f, 40.f*2.f, 480.0f, 0.9f, (bSuperLeague)?eCockpitWL2:eCockpitWL, 0,1);
+		AddQuad(pVertices, 800.f-82.f, 98.f*2.4f, 800.f, 480.0f, 0.9f, (bSuperLeague)?eCockpitWR2:eCockpitWR, 0,1);
+	}
+	AddQuad(pVertices, (Wide+42.0f)*2.0f, 123.0f*2.4f, (Wide+42.0f+235.0f)*2.0f, (123.f+35.0f)*2.4f, 0.89f, engineFrame, 0,1);
+	AddQuad(pVertices, (Wide+41.f)*2.f, 0.0f, (Wide+41.f+238.f)*2.f, 16.f*2.4f, 0.9f, (bSuperLeague)?eCockpitTop2:eCockpitTop, 0,1);
+	AddQuad(pVertices, Wide*2.f+0.0f, 0.0f, (Wide+41.f)*2.f, 153.f*2.4f, 0.9f, (bSuperLeague)?eCockpitLeft2:eCockpitLeft, 0,1);
+	AddQuad(pVertices, (Wide+279.f)*2.f, 0.0f, 640.0f+Wide*2.f, 153.f*2.4f, 0.9f, (bSuperLeague)?eCockpitRight2:eCockpitRight, 0,1);
+	AddQuad(pVertices, Wide*2+0.0f, 153.f*2.4f, 640.0f+Wide*2.f, 480.0f, 0.9f, (bSuperLeague)?eCockpitBottom2:eCockpitBottom, 0,1);
 	if (new_damage) {
 		// cracking... width is 238, offset is 41 (in 320x200 screen space)
 		float dam = new_damage; if (dam>238) dam=238;
-		X1 = 41.0f*2.0f; X2 = (41.0f+dam)*2.0f;
+		X1 = (Wide+41.0f)*2.0f; X2 = (Wide+41.0f+dam)*2.0f;
 		Y1 = 0.0f; Y2 = 0.0f+8.0f*2.4;
-		AddQuad(pVertices, X1, Y1, X2, Y2, 0.91f, eCracking, 0, dam/238.0f);
+		AddQuad(pVertices, X1, Y1, X2, Y2, 0.91f, (bSuperLeague)?eCracking2:eCracking, 0, dam/238.0f);
 	}
 	for (int i=0; i<nholes; i++) {
-		X1 = (47.0f+24.0f*i)*2; X2 = X1 + 12.0f*2.0f;
+		X1 = (Wide+47.0f+24.0f*i)*2; X2 = X1 + 12.0f*2.0f;
 		Y1 = 0.0f; Y2 = 0.0f+8.0f*2.4f;
-		AddQuad(pVertices, X1, Y1, X2, Y2, 0.95f, eHole, 0,1);
+		AddQuad(pVertices, X1, Y1, X2, Y2, 0.95f, (bSuperLeague)?eHole2:eHole, 0,1);
 	}
 
 	pCockpitVB->Unlock();
@@ -856,12 +873,12 @@ void DrawCockpit (IDirect3DDevice9 *pd3dDevice)
 		TRANSFORMEDCOLVERTEX *pVertices;
 		if( FAILED( pSpeedBarCB->Lock( 0, 0, (void**)&pVertices, 0 ) ) )
 			return;
-		float X1 = 196.0f, X2 = 196.0f + ((CalculateDisplaySpeed() >= 240) ? 240.0f : (float)CalculateDisplaySpeed())/240.0f*242.0f;
+		float X1 = Wide*2.f+196.0f, X2 = Wide*2.f+196.0f + ((old_speedbar > 240) ? (old_speedbar-240) : old_speedbar)/240.0f*242.0f;
 		float Y1 = 480.0f-61.0f, Y2=480.0f-61.0f+3.0f;
-		pVertices[0].x = X1; pVertices[0].y = Y1; pVertices[0].z = 1.0f; pVertices[0].rhw = 1.0f; pVertices[0].color = 0xff00ffff;
-		pVertices[1].x = X2; pVertices[1].y = Y1; pVertices[1].z = 1.0f; pVertices[1].rhw = 1.0f; pVertices[1].color = 0xff00ffff;
-		pVertices[2].x = X2; pVertices[2].y = Y2; pVertices[2].z = 1.0f; pVertices[2].rhw = 1.0f; pVertices[2].color = 0xff00ffff;
-		pVertices[3].x = X1; pVertices[3].y = Y2; pVertices[3].z = 1.0f; pVertices[3].rhw = 1.0f; pVertices[3].color = 0xff00ffff;
+		pVertices[0].x = X1; pVertices[0].y = Y1; pVertices[0].z = 1.0f; pVertices[0].rhw = 1.0f; pVertices[0].color = (old_speedbar > 240)?0xff00ccff:0xff00ffff;
+		pVertices[1].x = X2; pVertices[1].y = Y1; pVertices[1].z = 1.0f; pVertices[1].rhw = 1.0f; pVertices[1].color = (old_speedbar > 240)?0xff00ccff:0xff00ffff;
+		pVertices[2].x = X2; pVertices[2].y = Y2; pVertices[2].z = 1.0f; pVertices[2].rhw = 1.0f; pVertices[2].color = (old_speedbar > 240)?0xff00ccff:0xff00ffff;
+		pVertices[3].x = X1; pVertices[3].y = Y2; pVertices[3].z = 1.0f; pVertices[3].rhw = 1.0f; pVertices[3].color = (old_speedbar > 240)?0xff00ccff:0xff00ffff;
 		pSpeedBarCB->Unlock();
 	}
 
