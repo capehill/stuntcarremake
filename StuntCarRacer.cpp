@@ -1833,6 +1833,31 @@ static void handle_joystick(SDL_Joystick* joy)
         }
 }
 
+static void read_keyboard_state()
+{
+    Uint8 *keys = SDL_GetKeyState(NULL);
+
+    if (keys[SDLK_LEFT] || keys[SDLK_a]) {
+        lastInput |= KEY_P1_LEFT;
+    }
+
+    if (keys[SDLK_RIGHT] || keys[SDLK_d]) {
+        lastInput |= KEY_P1_RIGHT;
+    }
+
+    if (keys[SDLK_UP] || keys[SDLK_w]) {
+        lastInput |= KEY_P1_ACCEL;
+    }
+
+    if (keys[SDLK_DOWN] || keys[SDLK_s]) {
+        lastInput |= KEY_P1_BRAKE;
+    }
+
+    if (keys[SDLK_SPACE] || keys[SDLK_LSHIFT] || keys[SDLK_RSHIFT]) {
+        lastInput |= KEY_P1_BOOST;
+    }
+}
+
 bool process_events(SDL_Joystick* joystick)
 {
     lastInput = 0;
@@ -1924,88 +1949,21 @@ bool process_events(SDL_Joystick* joystick)
 					bNewGame = TRUE;		// for testing to try stopping car positioning bug
 					break;
 
-				// controls for Car Behaviour, Player 1
-				case SDLK_LEFT:
-					lastInput |= KEY_P1_LEFT;
-					break;
-
-				case SDLK_RIGHT:
-					lastInput |= KEY_P1_RIGHT;
-					break;
-
-#ifdef PANDORA
-				case SDLK_RCTRL:
-#else
-				case SDLK_SPACE:
-				case SDLK_RSHIFT:
-				case SDLK_LSHIFT:
-#endif
-					lastInput |= KEY_P1_BOOST;
-					break;
-
-#ifdef PANDORA
-				case SDLK_END:
-#else
-				case SDLK_DOWN:
-#endif
-					lastInput |= KEY_P1_BRAKE;
-					break;
-
-#ifdef PANDORA
-				case SDLK_PAGEDOWN:
-#else
-				case SDLK_UP:
-#endif
-					lastInput |= KEY_P1_ACCEL;
-					break;
-
 				case SDLK_ESCAPE:
 					return false;
 				}
             break;
+
         case SDL_KEYUP:
 			keyPress = 0;
-            switch( event.key.keysym.sym ) {
-				// controls for Car Behaviour, Player 1
-				case SDLK_LEFT:
-					lastInput &= ~KEY_P1_LEFT;
-					break;
-
-				case SDLK_RIGHT:
-					lastInput &= ~KEY_P1_RIGHT;
-					break;
-
-#ifdef PANDORA
-				case SDLK_RCTRL:
-#else
-				case SDLK_SPACE:
-				case SDLK_RSHIFT:
-				case SDLK_LSHIFT:
-#endif
-					lastInput &= ~KEY_P1_BOOST;
-					break;
-
-#ifdef PANDORA
-				case SDLK_END:
-#else
-				case SDLK_DOWN:
-#endif
-					lastInput &= ~KEY_P1_BRAKE;
-					break;
-
-#ifdef PANDORA
-				case SDLK_PAGEDOWN:
-#else
-				case SDLK_UP:
-#endif
-					lastInput &= ~KEY_P1_ACCEL;
-					break;
-				}
 			break;
+
         case SDL_QUIT:
             return false;
         }
     }
+
+    read_keyboard_state();
 
 	if (joystick) {
 		handle_joystick(joystick);
@@ -2057,7 +2015,7 @@ int main(int argc, const char** argv)
 
 	TTF_Init();
 
-	SDL_Joystick* joystick =open_joy();
+	SDL_Joystick* joystick = open_joy();
 
 	// crude command line parameter reading
 	int nomsaa = 0;
