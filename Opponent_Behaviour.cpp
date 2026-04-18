@@ -363,8 +363,8 @@ void OpponentBehaviour (long *x,
 		// end initialise.opponent.data
 
 		// Set opponent_max_speed
-		long s = (long)rand() & (long)opp_track_speed_values[TrackID+(bSuperLeague?32:0)];
-		s += (long)opp_track_speed_values[TrackID+8+(bSuperLeague?32:0)];
+		long s = static_cast<long>(rand()) & static_cast<long>(opp_track_speed_values[TrackID+(bSuperLeague?32:0)]);
+		s += static_cast<long>(opp_track_speed_values[TrackID+8+(bSuperLeague?32:0)]);
 		opponents_max_speed = s;
 //temp		opponents_max_speed = 10;
 
@@ -453,41 +453,41 @@ void OpponentBehaviour (long *x,
 
 	// Along car's x axis, only use y and z components
 #ifdef USE_ROAD_Y
-	double yd = (double)(rear_y - opp_front_road_pos_y) / 2;	// Note y is halved because of unit differences between y and x,z
+	double yd = static_cast<double>(rear_y - opp_front_road_pos_y) / 2;	// Note y is halved because of unit differences between y and x,z
 #else
 	#ifdef NEW_OPP_METHOD
-	double yd = (double)(rear_y - vis_front_y) / 2;	// Note y is halved because of unit differences between y and x,z
+	double yd = static_cast<double>(rear_y - vis_front_y) / 2;	// Note y is halved because of unit differences between y and x,zn y and x,z
 	#else
-	double yd = (double)(rear_y - opp_actual_height[FRONT]) / 2;	// Note y is halved because of unit differences between y and x,z
+	double yd = static_cast<double>(rear_y - opp_actual_height[FRONT]) / 2;	// Note y is halved because of unit differences between y and x,z
 	#endif
 #endif
 	long rear_x = (opp_rear_left_road_pos.x + opp_rear_right_road_pos.x) / 2;
 	long rear_z = (opp_rear_left_road_pos.z + opp_rear_right_road_pos.z) / 2;
 	long front_x = (opp_front_left_road_pos.x + opp_front_right_road_pos.x) / 2;
 	long front_z = (opp_front_left_road_pos.z + opp_front_right_road_pos.z) / 2;
-	double xd = (double)(rear_x - front_x);
-	double zd = (double)(rear_z - front_z);
+	double xd = static_cast<double>(rear_x - front_x);
+	double zd = static_cast<double>(rear_z - front_z);
 	double carzd = sqrt((xd*xd) + (zd*zd));
-	opponent_x_angle = (float)atan2(yd, carzd);
+	opponent_x_angle = static_cast<float>(atan2(yd, carzd));
 
 	// Along car's y axis, only use x and z components
-	xd = (double)(opp_rear_left_road_pos.x - opp_rear_right_road_pos.x);
-	zd = (double)(opp_rear_left_road_pos.z - opp_rear_right_road_pos.z);
-//	opponent_y_angle = (float)atan2(xd, zd) + D3DX_PI/2;
-	opponent_y_angle = (float)atan2(zd, -xd);
+	xd = static_cast<double>(opp_rear_left_road_pos.x - opp_rear_right_road_pos.x);
+	zd = static_cast<double>(opp_rear_left_road_pos.z - opp_rear_right_road_pos.z);
+//	opponent_y_angle = static_cast<float>(atan2(xd, zd)) + D3DX_PI/2;
+	opponent_y_angle = static_cast<float>(atan2(zd, -xd));
 
 	// Along car's z axis, only use x and y components
 #ifdef USE_ROAD_Y
-	yd = (double)(opp_rear_left_road_pos.y - opp_rear_right_road_pos.y) / 2;	// Note y is halved because of unit differences between y and x,z
+	yd = static_cast<double>(opp_rear_left_road_pos.y - opp_rear_right_road_pos.y) / 2;	// Note y is halved because of unit differences between y and x,z
 #else
 	#ifdef NEW_OPP_METHOD
-	yd = (double)(vis_rear_left_y - vis_rear_right_y) / 2;	// Note y is halved because of unit differences between y and x,z
+	yd = static_cast<double>(vis_rear_left_y - vis_rear_right_y) / 2;	// Note y is halved because of unit differences between y and x,zn y and x,z
 	#else
-	yd = (double)(opp_actual_height[REAR_LEFT] - opp_actual_height[REAR_RIGHT]) / 2;	// Note y is halved because of unit differences between y and x,z
+	yd = static_cast<double>(opp_actual_height[REAR_LEFT] - opp_actual_height[REAR_RIGHT]) / 2;	// Note y is halved because of unit differences between y and x,z
 	#endif
 #endif
 	double carxd = sqrt((xd*xd) + (zd*zd));
-	opponent_z_angle = (float)atan2(-yd, carxd);
+	opponent_z_angle = static_cast<float>(atan2(-yd, carxd));
 
 	// output opponent values for use by functions that draw the world
 	*x = opponent_x;
@@ -604,8 +604,8 @@ bool draw_shadow = TRUE;
 	long xd = right_side_x - left_side_x;
 	long yd = (sy3 - sy2) / LOCAL_Y_FACTOR;
 	long zd = right_side_z - left_side_z;
-	long base_width = (long)(sqrt((double)((xd*xd) + (zd*zd))));
-	long slope_width = (long)(sqrt((double)((base_width*base_width) + (yd*yd))));
+	long base_width = static_cast<long>(sqrt(static_cast<double>((xd*xd) + (zd*zd))));
+	long slope_width = static_cast<long>(sqrt(static_cast<double>((base_width*base_width) + (yd*yd))));
 	long opponents_shadow_x_span = (opponents_x_span * base_width) / slope_width;
 //	if (!bTestKey)
 //		opponents_shadow_x_span = opponents_x_span;
@@ -817,11 +817,11 @@ bool draw_shadow = TRUE;
 	// already /2 because are in Amiga format (i.e. not * PC_FACTOR).
 	// Also add 7 to y so that shadow is slightly above road and isn't clipped as much
 	D3DXVECTOR3 v1, v2, v3, v4;
-	v2 = D3DXVECTOR3( (float)opp_shadow_rear_left.x, 7 + (float)opp_shadow_rear_left.y/2, (float)opp_shadow_rear_left.z );
-	v3 = D3DXVECTOR3( (float)opp_shadow_rear_right.x, 7 + (float)opp_shadow_rear_right.y/2, (float)opp_shadow_rear_right.z );
+	v2 = D3DXVECTOR3( static_cast<float>(opp_shadow_rear_left.x), 7 + static_cast<float>(opp_shadow_rear_left.y)/2, static_cast<float>(opp_shadow_rear_left.z) );
+	v3 = D3DXVECTOR3( static_cast<float>(opp_shadow_rear_right.x), 7 + static_cast<float>(opp_shadow_rear_right.y)/2, static_cast<float>(opp_shadow_rear_right.z) );
 
-	v1 = D3DXVECTOR3( (float)opp_shadow_front_left.x, 7 + (float)opp_shadow_front_left.y/2, (float)opp_shadow_front_left.z );
-	v4 = D3DXVECTOR3( (float)opp_shadow_front_right.x, 7 + (float)opp_shadow_front_right.y/2, (float)opp_shadow_front_right.z );
+	v1 = D3DXVECTOR3( static_cast<float>(opp_shadow_front_left.x), 7 + static_cast<float>(opp_shadow_front_left.y)/2, static_cast<float>(opp_shadow_front_left.z) );
+	v4 = D3DXVECTOR3( static_cast<float>(opp_shadow_front_right.x), 7 + static_cast<float>(opp_shadow_front_right.y)/2, static_cast<float>(opp_shadow_front_right.z) );
 
 	RemoveShadowTriangles();
 	if (draw_shadow)
@@ -1252,7 +1252,7 @@ static void AverageWheelYSpeeds( long wheel1, long wheel2 )
 	opp_y_speed[wheel2] = average;
 }
 
-static long Opponent_Speed_Value( long TrackID, long pos )
+static long Opponent_Speed_Value( long track_id, long pos )
 {
 /*srd111a	move.l	#road.section.angle.and.piece,a1
 	move.b	(a1,d1.w),d0
@@ -1288,16 +1288,16 @@ srd114	move.l	#opponents.speed.values,a1
 	static long oldtrack = -1;
 	static bool oldleague = false;
 	static long oldspeed = 0;
-	if(pos==oldpos && oldtrack==TrackID && oldleague==bSuperLeague)
+	if(pos==oldpos && oldtrack==track_id && oldleague==bSuperLeague)
 		return oldspeed;
 	oldpos = pos;
 	oldleague = bSuperLeague;
-	oldtrack = TrackID;
+	oldtrack = track_id;
 
 	long b = Piece_Angle_And_Template[pos];
 	b = sections_car_can_be_put_on[b&0x0f];
-	long B63ce1 = (long)rand() & (long)opp_track_speed_values[TrackID+16+(bSuperLeague?32:0)];
-		 B63ce1 += (long)opp_track_speed_values[TrackID+24+(bSuperLeague?32:0)];
+	long B63ce1 = static_cast<long>(rand()) & static_cast<long>(opp_track_speed_values[track_id+16+(bSuperLeague?32:0)]);
+		 B63ce1 += static_cast<long>(opp_track_speed_values[track_id+24+(bSuperLeague?32:0)]);
 	long /*value,*/ d0;
 	if (b<0) {
 		//value = B63ce1-10;

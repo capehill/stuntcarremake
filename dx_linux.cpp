@@ -1,20 +1,22 @@
 #ifdef USE_SDL
 #include "dx_linux.h"
-#include "AL/al.h"
+// use a light version of stb_image
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 extern bool wideScreen;
 
 const char* BitMapRessourceName(const char* name)
 {
 static const char* resname[] = {
-	"RoadYellowDark", "RoadYellowLight", "RoadRedDark", 
-	"RoadRedLight", "RoadBlack", "RoadWhite", 
+	"RoadYellowDark", "RoadYellowLight", "RoadRedDark",
+	"RoadRedLight", "RoadBlack", "RoadWhite",
 	0};
 static const char* filename[] = {
-	"Bitmap/RoadYellowDark.bmp", "Bitmap/RoadYellowLight.bmp", "Bitmap/RoadRedDark.bmp", 
-	"Bitmap/RoadRedLight.bmp", "Bitmap/RoadBlack.bmp", "Bitmap/RoadWhite.bmp", 
+	"Bitmap/RoadYellowDark.bmp", "Bitmap/RoadYellowLight.bmp", "Bitmap/RoadRedDark.bmp",
+	"Bitmap/RoadRedLight.bmp", "Bitmap/RoadBlack.bmp", "Bitmap/RoadWhite.bmp",
 	0};
-	
+
 	int i = 0;
 	while(resname[i] && strcmp(resname[i], name)) i++;
 	if (filename[i] == 0)
@@ -22,8 +24,9 @@ static const char* filename[] = {
 	return filename[i];
 }
 
-void IDirect3DTexture9::LoadTexture(const char* name) 
+void IDirect3DTexture9::LoadTexture(const char* name)
 {
+/* TODO: old code, remove if not needed
 	if (texID) {
         glDeleteTextures(1, &texID);
 	}
@@ -37,6 +40,51 @@ void IDirect3DTexture9::LoadTexture(const char* name)
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 		return;
 	}
+	*/
+	if (texID) glDeleteTextures(1, &texID);
+	glGenTextures(1, &texID);
+	int x,y,n;
+	unsigned char *img = stbi_load(BitMapRessourceName(name), &x, &y, &n, 0);
+	if(!img) {
+		printf("Warning, image \"%s\" => \"%s\" not loaded\n", name, BitMapRessourceName(name));
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+		return;
+	}
+	GLint intfmt = n;
+	GLenum fmt = GL_RGBA;
+	switch (intfmt) {
+    case 1:
+        fmt = GL_ALPHA;
+        break;
+    case 3:     // no alpha channel
+		fmt = GL_RGB;
+        break;
+    case 4:     // contains an alpha channel
+		fmt = GL_RGBA;
+        break;
+	}
+	w2 = w = x;
+	h2 = h = y;
+	// will handle non-pot2 texture later? or resize the texture to POT?
+	/*w2 = NP2(w);
+	h2 = NP2(h);
+	wf = (float)w2 / (float)w;
+	hf = (float)h2 / (float)h;*/
+	Bind();
+	// ugly... Just blindly load the texture without much check!
+	glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_WRAP_S , GL_CLAMP_TO_EDGE );
+	glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_WRAP_T , GL_CLAMP_TO_EDGE );
+	glTexImage2D(GL_TEXTURE_2D, 0, intfmt, w2, h2, 0, fmt, GL_UNSIGNED_BYTE, NULL);
+	// simple and hugly way to make the texture upside down...
+	int pitch = y*n;
+	for (int i = 0; i< h ; i++) {
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, (h-1)-i, w, 1, fmt, GL_UNSIGNED_BYTE, img+(pitch*i));
+	}
+	UnBind();
+	if (img) free(img);
+}
 
     // Load a binary RGBA bigendian texture and feed it to OpenGL
     const int size = 1024;
@@ -66,7 +114,7 @@ void IDirect3DTexture9::LoadTexture(const char* name)
     	glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , GL_LINEAR);
     	glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_WRAP_S , GL_CLAMP_TO_EDGE );
     	glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_WRAP_T , GL_CLAMP_TO_EDGE );
-    	
+
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
     	// simple and hugly way to make the texture upside down...
@@ -128,26 +176,26 @@ HRESULT IDirectSoundBuffer8::SetVolume(LONG lVolume)
 {
 	if (!source)
 		return DSERR_GENERIC;
-	sound_volume(source, lVolume); 
+	sound_volume(source, lVolume);
 	return DS_OK;
 }
 
-HRESULT IDirectSoundBuffer8::Play(DWORD dwReserved1, DWORD dwPriority, DWORD dwFlags) 
+HRESULT IDirectSoundBuffer8::Play(DWORD dwReserved1, DWORD dwPriority, DWORD dwFlags)
 {
 	if (!source)
 		return DSERR_GENERIC;
-	if (dwFlags&DSBPLAY_LOOPING) 
-		sound_play_looping(source); 
-	else 
-		sound_play(source); 
+	if (dwFlags&DSBPLAY_LOOPING)
+		sound_play_looping(source);
+	else
+		sound_play(source);
 	return DS_OK;
 }
-  
+
 HRESULT IDirectSoundBuffer8::SetFrequency(DWORD dwFrequency)
 {
 	if (!source)
 		return DSERR_GENERIC;
-	sound_set_frequency(source, dwFrequency); 
+	sound_set_frequency(source, dwFrequency);
 	return DS_OK;
 }
 
@@ -155,7 +203,7 @@ HRESULT IDirectSoundBuffer8::SetCurrentPosition(DWORD dwNewPosition)
 {
 	if (!source)
 		return DSERR_GENERIC;
-	sound_set_position(source, dwNewPosition); 
+	sound_set_position(source, dwNewPosition);
 	return DS_OK;
 }
 
@@ -168,11 +216,11 @@ HRESULT IDirectSoundBuffer8::GetCurrentPosition(LPDWORD pdwCurrentPlayCursor, LP
 	return DS_OK;
 }
 
-HRESULT IDirectSoundBuffer8::Stop() 
+HRESULT IDirectSoundBuffer8::Stop()
 {
 	if (!source)
 		return DSERR_GENERIC;
-	sound_stop(source); 
+	sound_stop(source);
 	return DS_OK;
 }
 
@@ -181,7 +229,7 @@ HRESULT IDirectSoundBuffer8::SetPan(LONG lPan)
 	if (!source)
 		return DSERR_GENERIC;
 #warning TODO: conversion lPan to OpenAL panning
-	sound_pan(source, lPan); 
+	sound_pan(source, lPan);
 	return DS_OK;
 }
 
@@ -201,6 +249,7 @@ HRESULT IDirectSoundBuffer8::Release()
 		sound_release_buffer(buffer);
 		buffer = NULL;
 	}
+	return S_OK;
 }
 
 HRESULT IDirectSoundBuffer8::Lock(DWORD dwOffset, DWORD dwBytes, LPVOID * ppvAudioPtr1, LPDWORD  pdwAudioBytes1, LPVOID * ppvAudioPtr2, LPDWORD pdwAudioBytes2, DWORD dwFlags)
@@ -312,21 +361,21 @@ D3DXMATRIX* D3DXMatrixMultiply(D3DXMATRIX* pOut, const D3DXMATRIX* pM1, const D3
 }
 
 #ifdef USEGLM
-glm::vec3 FromVector(const D3DXVECTOR3* vec)		
-{		
-	glm::vec3 ret;		
-	ret[0]=vec->x;		
-	ret[1]=vec->y;		
-	ret[2]=vec->z;		
-	return ret;		
+glm::vec3 FromVector(const D3DXVECTOR3* vec)
+{
+	glm::vec3 ret;
+	ret[0]=vec->x;
+	ret[1]=vec->y;
+	ret[2]=vec->z;
+	return ret;
 }
 #endif
 
 D3DXMATRIX* D3DXMatrixLookAtLH(D3DXMATRIX* pOut, const D3DXVECTOR3* pEye, const D3DXVECTOR3* pAt, const D3DXVECTOR3* pUp)
 {
 #ifdef USEGLM
-	glm::vec3 eye=FromVector(pEye);		
- 	glm::vec3 at=FromVector(pAt);		
+	glm::vec3 eye=FromVector(pEye);
+ 	glm::vec3 at=FromVector(pAt);
  	glm::vec3 up=FromVector(pUp);
 #if 0
 	// checked, same as DX9
@@ -358,13 +407,13 @@ D3DXMATRIX* D3DXMatrixPerspectiveFovLH(D3DXMATRIX *pOut, FLOAT fovy, FLOAT Aspec
 
 	float x1 = ( 2 * zn ) / ( right - left );
 	float z1 = ( right + left ) / ( right - left );
- 
+
 	float y2 = ( 2 * zn ) / ( top - bottom );
 	float z2 = ( top + bottom ) / ( top - bottom );
- 
+
 	float z3 = -( zf + zn ) / ( zf - zn );
 	float w3 = -( 2 * zf * zn ) / ( zf - zn );
- 
+
 	*pOut = glm::mat4(
 		x1,  0.f,   z1, 0.f,
 		0.f,  y2,   z2, 0.f,
@@ -409,7 +458,7 @@ D3DXMATRIX* D3DXMatrixPerspectiveFovLH(D3DXMATRIX *pOut, FLOAT fovy, FLOAT Aspec
 	pOut->m[12]=0.0f;
 	pOut->m[13]=0.0f;
 	pOut->m[14]=(zn*zf)/(zn-zf);
-	pOut->m[15]=0.0f;	
+	pOut->m[15]=0.0f;
 #endif
 #endif
 	return pOut;
@@ -465,7 +514,7 @@ IDirect3DDevice9::IDirect3DDevice9()
  	mWorld = glm::mat4(1.0f);
  	mProj = glm::mat4(1.0f);
  	mText = glm::mat4(1.0f);
-	mInv = 
+	mInv =
 		glm::mat4(-1, 0, 0, 0,
 				   0,-1, 0, 0,
 				   0, 0,+1, 0,
@@ -484,7 +533,7 @@ IDirect3DDevice9::~IDirect3DDevice9()
 
 HRESULT IDirect3DDevice9::SetTransform(D3DTRANSFORMSTATETYPE State, D3DXMATRIX* pMatrix)
 {
-	switch (State) 
+	switch (State)
 	{
 		case D3DTS_VIEW:
 			mView = *pMatrix;
@@ -517,7 +566,7 @@ HRESULT IDirect3DDevice9::SetTransform(D3DTRANSFORMSTATETYPE State, D3DXMATRIX* 
 
 HRESULT IDirect3DDevice9::GetTransform(D3DTRANSFORMSTATETYPE State, D3DXMATRIX* pMatrix)
 {
-	switch (State) 
+	switch (State)
 	{
 		case D3DTS_VIEW:
 			*pMatrix = mView;
@@ -661,7 +710,7 @@ HRESULT IDirect3DDevice9::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType,UINT Star
 	} else*/ {
 		glDisable(GL_BLEND);
 	}
-	
+
 	if (col)
 		glEnableClientState(GL_COLOR_ARRAY);
 	else {
@@ -685,7 +734,7 @@ HRESULT IDirect3DDevice9::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType,UINT Star
 	}
 
 	if(transf) ActivateWorldMatrix();
-	
+
 	glDrawArrays(mode, StartVertex, prim1[PrimitiveType-1]*PrimitiveCount+prim2[PrimitiveType-1]);
 
 	if(transf) DeactivateWorldMatrix();
@@ -804,10 +853,12 @@ HRESULT IDirect3DDevice9::SetStreamSource(UINT StreamNumber, IDirect3DVertexBuff
 	buffer[StreamNumber] = pStreamData;
 	offset[StreamNumber] = OffsetInBytes;
 	stride[StreamNumber] = Stride;
+	return S_OK;
 }
 
 HRESULT IDirect3DDevice9::SetFVF(DWORD FVF) {
 	fvf = FVF;
+	return S_OK;
 }
 
 IDirect3DVertexBuffer9::IDirect3DVertexBuffer9(uint32_t size, uint32_t fvf) {
@@ -868,7 +919,7 @@ static SDL_Surface* ConvertToRGBA(SDL_Surface* in) {
     return out;
 }
 
-CDXUTTextHelper::CDXUTTextHelper(TTF_Font* font, GLuint sprite, int size) : 
+CDXUTTextHelper::CDXUTTextHelper(TTF_Font* font, GLuint sprite, int size) :
 	m_sprite(sprite), m_size(size), m_posx(0), m_posy(0)
 {
 	// set colors
@@ -879,7 +930,7 @@ CDXUTTextHelper::CDXUTTextHelper(TTF_Font* font, GLuint sprite, int size) :
 	glBindTexture(GL_TEXTURE_2D, m_texture);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	
+
 	int w = npot(16*m_fontsize);
 	void* tmp = malloc(w*w*4); memset(tmp, 0, w*w*4);
 	m_sizew = w; m_sizeh = w;
@@ -897,6 +948,7 @@ CDXUTTextHelper::CDXUTTextHelper(TTF_Font* font, GLuint sprite, int size) :
 
 			if (surf) {
 				m_as[i*16+j] = surf->w;
+                                glPixelStorei(GL_UNPACK_ROW_LENGTH, surf->pitch / surf->format->BytesPerPixel);
 				glTexSubImage2D(GL_TEXTURE_2D, 0, j*m_fontsize, i*m_fontsize, surf->w, (surf->h>=m_fontsize)?m_fontsize-1:surf->h, GL_RGBA, GL_UNSIGNED_BYTE, surf->pixels);
 				SDL_FreeSurface(surf);
 			} else {
@@ -997,7 +1049,7 @@ IDirect3DDevice9 *DXUTGetD3DDevice()
 	return device;
 }
 
-static D3DSURFACE_DESC d3dsurface_desc = {0}; 
+static D3DSURFACE_DESC d3dsurface_desc = {0};
 const D3DSURFACE_DESC * DXUTGetBackBufferSurfaceDesc()
 {
 	/*int vp[4];

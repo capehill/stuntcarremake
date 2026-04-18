@@ -20,11 +20,15 @@
 #include "Opponent_Behaviour.h"
 #include "wavefunctions.h"
 #include "Atlas.h"
+#include "version.h"
 
 #ifdef USE_SDL
 #define STRING "%s"
 #else
 #define STRING L"%s"
+#endif
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
 #endif
 
 
@@ -32,7 +36,11 @@
 // Defines, constants, and global variables
 //-----------------------------------------------------------------------------
 
+#ifdef linux
 #define DEFAULT_FRAME_GAP	(6)		// 4 Used to limit frame rate.  Amiga StuntCarRacer uses value of 6 (called MIN.FRAMES)
+#else
+#define DEFAULT_FRAME_GAP	(4)
+#endif
 
 #define	HEIGHT_ABOVE_ROAD	(100)
 
@@ -143,7 +151,7 @@ bool DSInit()
 
     if (err != DS_OK)
         return FALSE;
-	
+
 	return TRUE;
 	}
 
@@ -291,6 +299,15 @@ static void FreeData( void )
 /*	Function:		GetScreenDimensions														*/
 /*																							*/
 /*	Description:	Provide screen width and height											*/
+/*	======================================================================================= */
+
+/*	======================================================================================= */
+/*	Function:		GetScreenDimensions															*/
+/*																									*/
+/*	Description:	Retrieve current screen/backbuffer width and height					*/
+/*																									*/
+/*	Parameters:		screen_width  - Output: current screen width in pixels				*/
+/*					screen_height - Output: current screen height in pixels				*/
 /*	======================================================================================= */
 
 void GetScreenDimensions( long *screen_width,
@@ -449,21 +466,17 @@ static void EnforceConstantFrameRate( long max_frame_rate )
 		last_time_ms = timeGetTime();
 		}
 	else
+	{
+	this_time_ms = timeGetTime();
+	frame_time_ms = this_time_ms - last_time_ms;
+
+	remaining_ms = static_cast<long>(min_frame_time_ms) - static_cast<long>(frame_time_ms);
+	last_time_ms = this_time_ms;	if (remaining_ms > 0)
 		{
-		this_time_ms = timeGetTime();
-		frame_time_ms = this_time_ms - last_time_ms;
-
-		remaining_ms = (long)min_frame_time_ms - (long)frame_time_ms;
-		last_time_ms = this_time_ms;
-
-		if (remaining_ms > 0)
-			{
-			Sleep(remaining_ms);
-			last_time_ms += (DWORD)remaining_ms;
-			}
+		Sleep(remaining_ms);
+		last_time_ms += static_cast<DWORD>(remaining_ms);
 		}
-
-	return;
+	}	return;
 	}
 #endif
 
@@ -473,10 +486,31 @@ static void EnforceConstantFrameRate( long max_frame_rate )
 #ifdef USE_SDL
 TTF_Font *g_pFont = NULL;
 TTF_Font *g_pFontLarge = NULL;
+float GetTextScale() {
+	return 1.0f;	//TODO
+}
 GLuint   g_pSprite = 0;	// Texture for batching text calls
 #else
 ID3DXFont *g_pFont = NULL;         // Font for drawing text
 ID3DXFont *g_pFontLarge = NULL;    // Font for drawing large text
+
+/*	======================================================================================= */
+/*	Function:		GetTextScale															*/
+/*																									*/
+/*	Description:	Calculate text scaling factor based on current vs base resolution		*/
+/*					Used to scale font sizes and text positions for different window sizes	*/
+/*																									*/
+/*	Returns:		Scaling factor (1.0 = base resolution, 2.0 = double size, etc.)		*/
+/*	======================================================================================= */
+
+// Helper function to get text scale based on current resolution
+float GetTextScale()
+{
+	long current_width, current_height;
+	GetScreenDimensions(&current_width, &current_height);
+	float base_width = wideScreen ? static_cast<float>(BASE_WIDTH_WIDESCREEN) : static_cast<float>(BASE_WIDTH_STANDARD);
+	return static_cast<float>(current_width) / base_width;
+}
 ID3DXSprite *g_pSprite = NULL;       // Sprite for batching draw text calls
 #endif
 
@@ -499,13 +533,13 @@ void DestroyTextHelper() {
 //--------------------------------------------------------------------------------------
 // Rejects any devices that aren't acceptable by returning false
 //--------------------------------------------------------------------------------------
-bool CALLBACK IsDeviceAcceptable( D3DCAPS9 *pCaps, D3DFORMAT AdapterFormat, 
+bool CALLBACK IsDeviceAcceptable( D3DCAPS9 *pCaps, D3DFORMAT AdapterFormat,
                                   D3DFORMAT BackBufferFormat, bool bWindowed, void *pUserContext )
 {
     // Typically want to skip backbuffer formats that don't support alpha blending
-    IDirect3D9 *pD3D = DXUTGetD3DObject(); 
+    IDirect3D9 *pD3D = DXUTGetD3DObject();
     if( FAILED( pD3D->CheckDeviceFormat( pCaps->AdapterOrdinal, pCaps->DeviceType,
-                    AdapterFormat, D3DUSAGE_QUERY_POSTPIXELSHADER_BLENDING, 
+                    AdapterFormat, D3DUSAGE_QUERY_POSTPIXELSHADER_BLENDING,
                     D3DRTYPE_TEXTURE, BackBufferFormat ) ) )
         return false;
 
@@ -532,7 +566,7 @@ bool CALLBACK ModifyDeviceSettings( DXUTDeviceSettings *pDeviceSettings, const D
 
 
 //--------------------------------------------------------------------------------------
-// Create any D3DPOOL_MANAGED resources here 
+// Create any D3DPOOL_MANAGED resources here
 //--------------------------------------------------------------------------------------
 HRESULT CALLBACK OnCreateDevice( IDirect3DDevice9 *pd3dDevice, const D3DSURFACE_DESC *pBackBufferSurfaceDesc, void *pUserContext )
 {
@@ -541,13 +575,14 @@ HRESULT CALLBACK OnCreateDevice( IDirect3DDevice9 *pd3dDevice, const D3DSURFACE_
 //    V_RETURN( g_DialogResourceManager.OnCreateDevice( pd3dDevice ) );
 //    V_RETURN( g_SettingsDlg.OnCreateDevice( pd3dDevice ) );
 
-    // Initialize the fonts
-    V_RETURN( D3DXCreateFont( pd3dDevice, 15, 0, FW_BOLD, 1, FALSE, DEFAULT_CHARSET, 
-                              OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, 
+    // Initialize the fonts with scaled sizes
+	float textScale = GetTextScale();
+    V_RETURN( D3DXCreateFont( pd3dDevice, static_cast<int>(15 * textScale), 0, FW_BOLD, 1, FALSE, DEFAULT_CHARSET,
+                              OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
                               L"Arial", &g_pFont ) );
 
-    V_RETURN( D3DXCreateFont( pd3dDevice, 25, 0, FW_BOLD, 1, FALSE, DEFAULT_CHARSET, 
-                              OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, 
+    V_RETURN( D3DXCreateFont( pd3dDevice, static_cast<int>(25 * textScale), 0, FW_BOLD, 1, FALSE, DEFAULT_CHARSET,
+                              OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
                               L"Arial", &g_pFontLarge ) );
 
     return S_OK;
@@ -555,9 +590,9 @@ HRESULT CALLBACK OnCreateDevice( IDirect3DDevice9 *pd3dDevice, const D3DSURFACE_
 
 
 //--------------------------------------------------------------------------------------
-// Create any D3DPOOL_DEFAULT resources here 
+// Create any D3DPOOL_DEFAULT resources here
 //--------------------------------------------------------------------------------------
-HRESULT CALLBACK OnResetDevice( IDirect3DDevice9 *pd3dDevice, 
+HRESULT CALLBACK OnResetDevice( IDirect3DDevice9 *pd3dDevice,
                                 const D3DSURFACE_DESC *pBackBufferSurfaceDesc, void *pUserContext )
 {
     HRESULT hr;
@@ -565,33 +600,67 @@ HRESULT CALLBACK OnResetDevice( IDirect3DDevice9 *pd3dDevice,
 //    V_RETURN( g_DialogResourceManager.OnResetDevice() );
 //    V_RETURN( g_SettingsDlg.OnResetDevice() );
 
-    if( g_pFont )
-        V_RETURN( g_pFont->OnResetDevice() );
-    if( g_pFontLarge )
-        V_RETURN( g_pFontLarge->OnResetDevice() );
+    // Recreate fonts with proper scaling for new resolution
+	if( g_pFont )
+	{
+		g_pFont->Release();
+		g_pFont = NULL;
+	}
+	if( g_pFontLarge )
+	{
+		g_pFontLarge->Release();
+		g_pFontLarge = NULL;
+	}
+
+	float textScale = GetTextScale();
+	V_RETURN( D3DXCreateFont( pd3dDevice, static_cast<int>(15 * textScale), 0, FW_BOLD, 1, FALSE, DEFAULT_CHARSET,
+	                          OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
+	                          L"Arial", &g_pFont ) );
+
+	V_RETURN( D3DXCreateFont( pd3dDevice, static_cast<int>(25 * textScale), 0, FW_BOLD, 1, FALSE, DEFAULT_CHARSET,
+	                          OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
+	                          L"Arial", &g_pFontLarge ) );
 
     // Create a sprite to help batch calls when drawing many lines of text
     V_RETURN( D3DXCreateSprite( pd3dDevice, &g_pSprite ) );
 
-	if (CreatePolygonVertexBuffer(pd3dDevice) != S_OK)
+	if (FAILED(D3DXCreateTextureFromResource(pd3dDevice, NULL, L"ATLAS", &g_pAtlas)))
+	{
+		OutputDebugStringW(L"ERROR: Failed to create texture from ATLAS resource\n");
 		return E_FAIL;
-	if (CreateTrackVertexBuffer(pd3dDevice) != S_OK)
-		return E_FAIL;
-	if (CreateShadowVertexBuffer(pd3dDevice) != S_OK)
-		return E_FAIL;
-	if (CreateCarVertexBuffer(pd3dDevice) != S_OK)
-		return E_FAIL;
-	if (CreateCockpitVertexBuffer(pd3dDevice) != S_OK)
-		return E_FAIL;
+	}
 
-	if ( FAILED( D3DXCreateTextureFromFile( pd3dDevice, L"Bitmap\\atlas.png", &g_pAtlas ) ) )
-		return E_FAIL;
-	
 	InitAtlasCoord();
+
+	if ((hr = CreatePolygonVertexBuffer(pd3dDevice)) != S_OK)
+	{
+		OutputDebugStringW(L"ERROR: Failed to create polygon vertex buffer\n");
+		return hr;
+	}
+	if ((hr = CreateTrackVertexBuffer(pd3dDevice)) != S_OK)
+	{
+		OutputDebugStringW(L"ERROR: Failed to create track vertex buffer\n");
+		return hr;
+	}
+	if ((hr = CreateShadowVertexBuffer(pd3dDevice)) != S_OK)
+	{
+		OutputDebugStringW(L"ERROR: Failed to create shadow vertex buffer\n");
+		return hr;
+	}
+	if ((hr = CreateCarVertexBuffer(pd3dDevice)) != S_OK)
+	{
+		OutputDebugStringW(L"ERROR: Failed to create car vertex buffer\n");
+		return hr;
+	}
+	if ((hr = CreateCockpitVertexBuffer(pd3dDevice)) != S_OK)
+	{
+		OutputDebugStringW(L"ERROR: Failed to create cockpit vertex buffer\n");
+		return hr;
+	}
 
 	// Set the projection transform (view and world are updated per frame)
     D3DXMATRIX matProj;
-	FLOAT fAspect = pBackBufferSurfaceDesc->Width / (FLOAT)pBackBufferSurfaceDesc->Height;
+	FLOAT fAspect = pBackBufferSurfaceDesc->Width / static_cast<FLOAT>(pBackBufferSurfaceDesc->Height);
     D3DXMatrixPerspectiveFovLH( &matProj, D3DX_PI/4, fAspect, 0.5f, FURTHEST_Z );
     pd3dDevice->SetTransform( D3DTS_PROJECTION, &matProj );
 
@@ -622,6 +691,19 @@ void CreateFonts()
 		g_pFontLarge = TTF_OpenFont("DejaVuSans-Bold.ttf", 25);
 	}
 	printf("Font created (%p / %p)\n", g_pFont, g_pFontLarge);
+}
+void CloseFonts()
+{
+	if (g_pFont!=NULL)
+	{
+		TTF_CloseFont(g_pFont);
+		g_pFont = 0;
+	}
+	if (g_pFontLarge!=NULL)
+	{
+		TTF_CloseFont(g_pFontLarge);
+		g_pFontLarge = NULL;
+	}
 }
 void LoadTextures()
 {
@@ -760,7 +842,7 @@ static void CalcTrackPreviewViewpoint( void )
         {
         o = double(camera_x[camera] - target_x);
         a = double(camera_z[camera] - target_z);
-        distance = (long)sqrt((o*o) + (a*a));
+        distance = static_cast<long>(sqrt((o*o) + (a*a)));
 
         if (camera == 0)
             {
@@ -853,9 +935,9 @@ static void SetCarWorldTransform( void )
 D3DXMATRIX matRot, matTemp, matTrans;
 
 	D3DXMatrixIdentity(&matRot);
-	float xa = (((float)player1_x_angle * 2 * D3DX_PI) / 65536.0f);
-	float ya = (((float)player1_y_angle * 2 * D3DX_PI) / 65536.0f);
-	float za = (((float)player1_z_angle * 2 * D3DX_PI) / 65536.0f);
+	float xa = ((static_cast<float>(player1_x_angle) * 2 * D3DX_PI) / 65536.0f);
+	float ya = ((static_cast<float>(player1_y_angle) * 2 * D3DX_PI) / 65536.0f);
+	float za = ((static_cast<float>(player1_z_angle) * 2 * D3DX_PI) / 65536.0f);
 	// Produce and combine the rotation matrices
 	D3DXMatrixRotationZ(&matTemp, za);
 	D3DXMatrixMultiply(&matRot, &matRot, &matTemp);
@@ -865,7 +947,7 @@ D3DXMATRIX matRot, matTemp, matTrans;
 	D3DXMatrixMultiply(&matRot, &matRot, &matTemp);
 	// Produce the translation matrix
 	// Position car slightly higher than wheel height (VCAR_HEIGHT/4) so wheels are fully visible
-	D3DXMatrixTranslation( &matTrans, (float)(player1_x>>LOG_PRECISION), (float)(-player1_y>>LOG_PRECISION)+VCAR_HEIGHT/3, (float)(player1_z>>LOG_PRECISION) );
+	D3DXMatrixTranslation( &matTrans, static_cast<float>(player1_x>>LOG_PRECISION), static_cast<float>(-player1_y>>LOG_PRECISION)+VCAR_HEIGHT/3, static_cast<float>(player1_z>>LOG_PRECISION) );
 	// Combine the rotation and translation matrices to complete the world matrix
 	D3DXMatrixMultiply(&matWorldCar, &matRot, &matTrans);
 }
@@ -888,7 +970,7 @@ D3DXMATRIX matRot, matTemp, matTrans;
 	D3DXMatrixMultiply(&matRot, &matRot, &matTemp);
 	// Produce the translation matrix
 	// Position car at wheel height (VCAR_HEIGHT/4)
-	D3DXMatrixTranslation( &matTrans, (float)(opponent_x>>LOG_PRECISION), (float)(-opponent_y>>LOG_PRECISION)+VCAR_HEIGHT/4, (float)(opponent_z>>LOG_PRECISION) );
+	D3DXMatrixTranslation( &matTrans, static_cast<float>(opponent_x>>LOG_PRECISION), static_cast<float>(-opponent_y>>LOG_PRECISION)+VCAR_HEIGHT/4, static_cast<float>(opponent_z>>LOG_PRECISION) );
 	// Combine the rotation and translation matrices to complete the world matrix
 	D3DXMatrixMultiply(&matWorldOpponentsCar, &matRot, &matTrans);
 }
@@ -913,6 +995,15 @@ static long frameCount = 0;
 DWORD input = lastInput;	// take copy of user input
 D3DXMATRIX matRot, matTemp, matTrans, matView;
 
+#ifndef linux
+// crude 60fps cap method...
+static float lastFrame = 0.0f;
+#define FPSMAX (1.0f/60.f)
+	lastFrame += fElapsedTime;
+	if (lastFrame < FPSMAX)
+		return;
+	lastFrame -= FPSMAX;
+#endif
 	bFrameMoved = FALSE;
 //	VALUE3 = frameGap;
 
@@ -1026,9 +1117,9 @@ D3DXMATRIX matRot, matTemp, matTrans, matView;
 		// Set the view transform matrix
 		//
 		// Set the eye point
-		D3DXVECTOR3 vEyePt( (float)viewpoint1_x, (float)(-viewpoint1_y>>LOG_PRECISION), (float)viewpoint1_z );
+		D3DXVECTOR3 vEyePt( static_cast<float>(viewpoint1_x), static_cast<float>(-viewpoint1_y>>LOG_PRECISION), static_cast<float>(viewpoint1_z) );
 		// Set the lookat point
-		D3DXVECTOR3 vLookatPt( (float)target_x, (float)target_y, (float)target_z );
+		D3DXVECTOR3 vLookatPt( static_cast<float>(target_x), static_cast<float>(target_y), static_cast<float>(target_z) );
 		D3DXMatrixLookAtLH( &matView, &vEyePt, &vLookatPt, &vUpVec );
 		pd3dDevice->SetTransform( D3DTS_VIEW, &matView );
 	}
@@ -1069,11 +1160,11 @@ D3DXMATRIX matRot, matTemp, matTrans, matView;
 		// Set the view transform matrix
 		//
 		// Produce the translation matrix
-		D3DXMatrixTranslation( &matTrans, (float)-viewpoint1_x, (float)(viewpoint1_y>>LOG_PRECISION), (float)-viewpoint1_z );
+		D3DXMatrixTranslation( &matTrans, static_cast<float>(-viewpoint1_x), static_cast<float>(viewpoint1_y>>LOG_PRECISION), static_cast<float>(-viewpoint1_z) );
 		D3DXMatrixIdentity(&matRot);
-		float xa = (((float)-viewpoint1_x_angle * 2 * D3DX_PI) / 65536.0f);
-		float ya = (((float)-viewpoint1_y_angle * 2 * D3DX_PI) / 65536.0f);
-		float za = (((float)-viewpoint1_z_angle * 2 * D3DX_PI) / 65536.0f);
+		float xa = ((static_cast<float>(-viewpoint1_x_angle) * 2 * D3DX_PI) / 65536.0f);
+		float ya = ((static_cast<float>(-viewpoint1_y_angle) * 2 * D3DX_PI) / 65536.0f);
+		float za = ((static_cast<float>(-viewpoint1_z_angle) * 2 * D3DX_PI) / 65536.0f);
 		// Produce and combine the rotation matrices
 #ifdef USE_SDL
 		D3DXMatrixRotationY(&matTemp, ya + D3DX_PI);
@@ -1123,7 +1214,8 @@ static void HandleTrackMenu( CDXUTTextHelper &txtHelper )
 	{
 	long i, track_number;
 	UINT firstMenuOption, lastMenuOption;
-	txtHelper.SetInsertionPos( 2+(wideScreen?10:0), 15*8 );
+	float textScale = GetTextScale();
+	txtHelper.SetInsertionPos( static_cast<int>((2+(wideScreen?10:0)) * textScale), static_cast<int>(15*8*textScale) );
 	txtHelper.DrawTextLine( "Choose track :-" );
 
 	for (i = 0, firstMenuOption = FIRSTMENU; i < NUM_TRACKS; i++)
@@ -1134,7 +1226,7 @@ static void HandleTrackMenu( CDXUTTextHelper &txtHelper )
 
 	// output instructions
 	const D3DSURFACE_DESC *pd3dsdBackBuffer = DXUTGetBackBufferSurfaceDesc();
-	txtHelper.SetInsertionPos( 2+(wideScreen?10:0), pd3dsdBackBuffer->Height-15*8 );
+	txtHelper.SetInsertionPos( static_cast<int>((2+(wideScreen?10:0)) * textScale), static_cast<int>(pd3dsdBackBuffer->Height-15*8*textScale) );
 	txtHelper.DrawFormattedTextLine( "Current track - " STRING ".  Press 'S' to select, Escape to quit", (TrackID == NO_TRACK ? "None" : GetTrackName(TrackID)));
 	txtHelper.DrawTextLine( "'L' to switch Super League On/Off");
 
@@ -1144,7 +1236,7 @@ static void HandleTrackMenu( CDXUTTextHelper &txtHelper )
 			bSuperLeague = !bSuperLeague;
 			track_number = TrackID;
 			CreateCarVertexBuffer(DXUTGetD3DDevice());	// recreate car
-		} else 
+		} else
 			track_number = keyPress - firstMenuOption;	// start at 0
 
 		if (! ConvertAmigaTrack(track_number))
@@ -1176,7 +1268,7 @@ static void HandleTrackMenu( CDXUTTextHelper &txtHelper )
 		bPlayerPaused = bOpponentPaused = FALSE;
 		keyPress = '\0';
 		}
-	
+
 
 	return;
 	}
@@ -1192,17 +1284,18 @@ static void HandleTrackPreview( CDXUTTextHelper &txtHelper )
 	{
 	// output instructions
 	const D3DSURFACE_DESC *pd3dsdBackBuffer = DXUTGetBackBufferSurfaceDesc();
-	txtHelper.SetInsertionPos( 2+(wideScreen?10:0), pd3dsdBackBuffer->Height-15*9 );
-	txtHelper.DrawFormattedTextLine( "Selected track - " STRING ".  Press 'S' to start game", (TrackID == NO_TRACK ? "None" : GetTrackName(TrackID)));
+	float textScale = GetTextScale();
+	txtHelper.SetInsertionPos( static_cast<int>((2+(wideScreen?10:0)) * textScale), static_cast<int>(pd3dsdBackBuffer->Height-15*9*textScale) );
+	txtHelper.DrawFormattedTextLine( "Selected track - " STRING L".  Press 'S' to start game", (TrackID == NO_TRACK ? "None" : GetTrackName(TrackID)));
 	txtHelper.DrawTextLine( "'M' for track menu, Escape to quit");
 	txtHelper.DrawTextLine( "(Press F4 to change scenery, F9 / F10 to adjust frame rate)" );
 
-	txtHelper.SetInsertionPos( 2+(wideScreen?10:0), pd3dsdBackBuffer->Height-15*6 );
+	txtHelper.SetInsertionPos( static_cast<int>((2+(wideScreen?10:0)) * textScale), static_cast<int>(pd3dsdBackBuffer->Height-15*6*textScale) );
 	txtHelper.DrawTextLine( "Keyboard controls during game :-" );
-	#ifdef PANDORA
+	#if defined(PANDORA) || defined(PYRA)
 	txtHelper.DrawTextLine( "  DPad = Steer, (X) = Accelerate, (B) = Brake, (R) = Nitro" );
 	#else
-	txtHelper.DrawTextLine( "  S = Steer left, D = Steer right, Enter = Accelerate, Space = Brake" );
+	txtHelper.DrawTextLine( "  Arrow left = Steer left, Arrow right = Steer right, Space = Accelerate, Arrow Down = Brake" );
 	#endif
 	txtHelper.DrawTextLine( "  R = Point car in opposite direction, P = Pause, O = Unpause" );
 	txtHelper.DrawTextLine( "  M = Back to track menu, Escape = Quit" );
@@ -1239,7 +1332,7 @@ static void HandleTrackPreview( CDXUTTextHelper &txtHelper )
 
 
 //--------------------------------------------------------------------------------------
-// Render the help and statistics text. This function uses the ID3DXFont interface for 
+// Render the help and statistics text. This function uses the ID3DXFont interface for
 // efficient text rendering.  Also render text specific to GameMode.
 //--------------------------------------------------------------------------------------
 extern long new_damage;
@@ -1250,21 +1343,25 @@ void RenderText( double fTime )
 {
     // The helper object simply helps keep track of text position, and color
     // and then it calls pFont->DrawText( m_pSprite, strMsg, -1, &rc, DT_NOCLIP, m_clr );
-    // If NULL is passed in as the sprite object, then it will work fine however the 
+    // If NULL is passed in as the sprite object, then it will work fine however the
     // pFont->DrawText() will not be batched together.  Batching calls will improve perf.
-    CDXUTTextHelper& txtHelper = *g_txtHelper;
+	float textScale = GetTextScale();
+#ifdef linux
+	static
+#endif
+    CDXUTTextHelper txtHelper( g_pFont, g_pSprite, static_cast<int>(15 * textScale) );
 
     // Output statistics
     txtHelper.Begin();
 	txtHelper.SetForegroundColor( D3DXCOLOR( 1.0f, 1.0f, 0.0f, 1.0f ) );
 	if (bShowStats)
 	{
-		txtHelper.SetInsertionPos( 2+(wideScreen?10:0), 0 );
+		txtHelper.SetInsertionPos( static_cast<int>((2+(wideScreen?10:0)) * textScale), 0 );
 #ifndef USE_SDL
 		txtHelper.DrawTextLine( DXUTGetFrameStats(true) );
 		txtHelper.DrawTextLine( DXUTGetDeviceStats() );
 #else
-		
+
 		txtHelper.DrawFormattedTextLine( "fTime: %0.1f  sin(fTime): %0.4f", fTime, sin(fTime) );
 #endif
 
@@ -1297,10 +1394,10 @@ void RenderText( double fTime )
 			// Output opponent's name for four seconds at race start
 			if (((DXUTGetTime() - gameStartTime) < 4.0) && (opponentsID != NO_OPPONENT))
 			{
-				txtHelper.SetInsertionPos( 250+(wideScreen?80:0), pd3dsdBackBuffer->Height-15*20 );
+				txtHelper.SetInsertionPos( static_cast<int>((250+(wideScreen?80:0)) * textScale), static_cast<int>(pd3dsdBackBuffer->Height-15*20*textScale) );
 				txtHelper.DrawFormattedTextLine( "Opponent: " STRING, opponentNames[opponentsID] );
 			}
-			txtHelper.SetInsertionPos( 2+(wideScreen?80:0), pd3dsdBackBuffer->Height-15*2 );
+			txtHelper.SetInsertionPos( static_cast<int>((2+(wideScreen?80:0)) * textScale), static_cast<int>(pd3dsdBackBuffer->Height-15*2*textScale) );
 			if (lapNumber[PLAYER] > 0)
 #ifdef __amigaos4__
             snprintf(lapText, sizeof(lapText), "%d", lapNumber[PLAYER]);
@@ -1309,21 +1406,26 @@ void RenderText( double fTime )
 #endif
 			txtHelper.SetForegroundColor( D3DXCOLOR( 0.0f, 0.0f, 0.0f, 1.0f ) );
 
-			txtHelper.SetInsertionPos( 75+(wideScreen?80:0), pd3dsdBackBuffer->Height-52 );
-			txtHelper.DrawFormattedTextLine( "L" STRING "        B%02d", lapText, boostReserve );
-			if (CalculateOpponentsDistance() >= 0)
-				txtHelper.SetInsertionPos( 72+(wideScreen?80:0), pd3dsdBackBuffer->Height-29 );
-			else
-				txtHelper.SetInsertionPos( 76+(wideScreen?80:0), pd3dsdBackBuffer->Height-29 );
-			txtHelper.DrawFormattedTextLine( "         %+05d", CalculateOpponentsDistance() );
+			// Position text using base 800x480 coordinates, then scale
+			float base_height = static_cast<float>(BASE_HEIGHT);
+		float scaleY = static_cast<float>(pd3dsdBackBuffer->Height) / base_height;
+
+		// Boost text - positioned in top dashboard box
+		txtHelper.SetInsertionPos( static_cast<int>((88+(wideScreen?80:0)) * textScale), static_cast<int>((BASE_HEIGHT - 48.0f) * scaleY) );
+		txtHelper.DrawFormattedTextLine( "L" STRING "       B%02d", lapText, boostReserve );			// Distance text - positioned in bottom dashboard box
+			txtHelper.SetInsertionPos( static_cast<int>((84+(wideScreen?80:0)) * textScale), static_cast<int>((BASE_HEIGHT - 25.0f) * scaleY) );
+			txtHelper.DrawFormattedTextLine( "        %+05d", CalculateOpponentsDistance() );
 
 			txtHelper.End();
 
 			if (raceFinished)
 			{
-                CDXUTTextHelper& txtHelperLarge = *g_txtHelperLarge;
-				
-                txtHelperLarge.Begin();
+				#ifdef linux
+				static
+				#endif
+				CDXUTTextHelper txtHelperLarge( g_pFontLarge, g_pSprite, static_cast<int>(25 * textScale) );
+
+				txtHelperLarge.Begin();
 
 				double currentTime = DXUTGetTime(), diffTime;
 				if (gameEndTime == 0.0)
@@ -1339,25 +1441,25 @@ void RenderText( double fTime )
 				if (GameMode == GAME_OVER)
 				{
 #ifdef 	linux
-					txtHelperLarge.SetInsertionPos( 250+(wideScreen?80:0), pd3dsdBackBuffer->Height-25*13 );
+					txtHelperLarge.SetInsertionPos( static_cast<int>((250+(wideScreen?80:0)) * textScale), static_cast<int>(pd3dsdBackBuffer->Height-25*13*textScale) );
 					txtHelperLarge.DrawTextLine( "GAME OVER" );
-					txtHelperLarge.SetInsertionPos( 132+(wideScreen?80:0), pd3dsdBackBuffer->Height-25*11 );
+					txtHelperLarge.SetInsertionPos( static_cast<int>((132+(wideScreen?80:0)) * textScale), static_cast<int>(pd3dsdBackBuffer->Height-25*11*textScale) );
 					txtHelperLarge.DrawTextLine( "Press 'M' for track menu" );
 #else
-					txtHelperLarge.SetInsertionPos( 124+(wideScreen?80:0), pd3dsdBackBuffer->Height-25*12 );
+					txtHelperLarge.SetInsertionPos( static_cast<int>((124+(wideScreen?80:0)) * textScale), static_cast<int>(pd3dsdBackBuffer->Height-25*12*textScale) );
 					txtHelperLarge.DrawTextLine( "GAME OVER: Press 'M' for track menu" );
 #endif
 				}
 				else
 				{
-					long intTime = (long)diffTime;
+					long intTime = static_cast<long>(diffTime);
 					// Text flashes white/black, changing every half second
 					if ((diffTime - (double)intTime) < 0.5)
 						txtHelperLarge.SetForegroundColor( D3DXCOLOR( 1.0f, 1.0f, 1.0f, 1.0f ) );
 					else
 						txtHelperLarge.SetForegroundColor( D3DXCOLOR( 0.0f, 0.0f, 0.0f, 1.0f ) );
 
-					txtHelperLarge.SetInsertionPos( 250+(wideScreen?80:0), pd3dsdBackBuffer->Height-25*12 );
+					txtHelperLarge.SetInsertionPos( static_cast<int>((250+(wideScreen?80:0)) * textScale), static_cast<int>(pd3dsdBackBuffer->Height-25*12*textScale) );
 
 					if (raceWon)
 						txtHelperLarge.DrawTextLine( "RACE WON" );
@@ -1467,7 +1569,7 @@ D3DLIGHT9 light;
 
 
 //--------------------------------------------------------------------------------------
-// Render the scene 
+// Render the scene
 //--------------------------------------------------------------------------------------
 
 void CALLBACK OnFrameRender( IDirect3DDevice9 *pd3dDevice, double fTime, float fElapsedTime, void *pUserContext )
@@ -1547,18 +1649,54 @@ HRESULT hr;
 
 #ifdef _WIN32
 //--------------------------------------------------------------------------------------
-// Handle messages to the application 
+// Handle messages to the application
 //--------------------------------------------------------------------------------------
-LRESULT CALLBACK MsgProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, 
+LRESULT CALLBACK MsgProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam,
                           bool *pbNoFurtherProcessing, void *pUserContext )
 {
-    return 0;
+	// Handle window resizing to preserve aspect ratio
+	if (uMsg == WM_SIZING)
+	{
+		RECT* pRect = (RECT*)lParam;
+		int width = pRect->right - pRect->left;
+		int height = pRect->bottom - pRect->top;
+
+		// Preserve aspect ratio based on wideScreen setting
+		// wideScreen=1 means 16:10 (800:480), wideScreen=0 would be 4:3
+		float targetAspect = wideScreen ? (800.0f / 480.0f) : (4.0f / 3.0f);
+		float currentAspect = static_cast<float>(width) / static_cast<float>(height);
+
+		// Adjust based on which edge is being dragged
+		if (currentAspect > targetAspect)
+		{
+			// Too wide, adjust width
+			int newWidth = static_cast<int>(height * targetAspect);
+			if (wParam == WMSZ_LEFT || wParam == WMSZ_TOPLEFT || wParam == WMSZ_BOTTOMLEFT)
+				pRect->left = pRect->right - newWidth;
+			else
+				pRect->right = pRect->left + newWidth;
+		}
+		else if (currentAspect < targetAspect)
+		{
+			// Too tall, adjust height
+			int newHeight = static_cast<int>(width / targetAspect);
+			if (wParam == WMSZ_TOP || wParam == WMSZ_TOPLEFT || wParam == WMSZ_TOPRIGHT)
+				pRect->top = pRect->bottom - newHeight;
+			else
+				pRect->bottom = pRect->top + newHeight;
+		}
+
+		*pbNoFurtherProcessing = true;
+		return 0;
+	}
+
+	return 0;
 }
 
 //--------------------------------------------------------------------------------------
 // As a convenience, DXUT inspects the incoming windows messages for
 // keystroke messages and decodes the message parameters to pass relevant keyboard
-// messages to the application.  The framework does not remove the underlying keystroke 
+// messages to the application.  The framework does not remove the underlying keystroke
 // messages, which are still passed to the application's MsgProc callback.
 //--------------------------------------------------------------------------------------
 void CALLBACK KeyboardProc( UINT nChar, bool bKeyDown, bool bAltDown, void *pUserContext )
@@ -1697,7 +1835,7 @@ void CALLBACK KeyboardProc( UINT nChar, bool bKeyDown, bool bAltDown, void *pUse
 
 
 //--------------------------------------------------------------------------------------
-// Release resources created in the OnResetDevice callback here 
+// Release resources created in the OnResetDevice callback here
 //--------------------------------------------------------------------------------------
 void CALLBACK OnLostDevice( void *pUserContext )
 {
@@ -1744,6 +1882,8 @@ void CALLBACK OnDestroyDevice( void *pUserContext )
 INT WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR, int )
 {
     // Enable run-time memory check for debug builds.
+	wchar_t maintitle[50] = {0};
+	wsprintf(maintitle, L"StuntCarRemake v%d.%02d.%02d", V_MAJOR, V_MINOR, V_PATCH);
 #if defined(DEBUG) | defined(_DEBUG)
     _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 #endif
@@ -1757,7 +1897,7 @@ INT WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR, int )
     DXUTSetCallbackKeyboard( KeyboardProc );
     DXUTSetCallbackFrameRender( OnFrameRender );
     DXUTSetCallbackFrameMove( OnFrameMove );
-   
+
     // Perform any application-level initialization here
 	if (!InitialiseData())
 	    return DXUTGetExitCode();
@@ -1765,8 +1905,20 @@ INT WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR, int )
     // Initialize DXUT and create the desired Win32 window and Direct3D device for the application
     DXUTInit( true, true, true, false ); // Parse the command line, handle the default hotkeys, show msgboxes, don't handle Alt-Enter
     DXUTSetCursorSettings( true, true ); // Show the cursor and clip it when in full screen
-    DXUTCreateWindow( L"StuntCarRacer" );
-    DXUTCreateDevice( D3DADAPTER_DEFAULT, true, 640, 480, IsDeviceAcceptable, ModifyDeviceSettings );
+    DXUTCreateWindow( maintitle );
+
+	// Get screen resolution and set initial window size to roughly half
+	int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+	int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+	int initialWidth = screenWidth / 2;
+	int initialHeight = screenHeight / 2;
+	// Maintain 16:10 aspect ratio
+	if (initialWidth * 10 != initialHeight * 16) {
+		initialHeight = (initialWidth * 10) / 16;
+	}
+
+    DXUTCreateDevice( D3DADAPTER_DEFAULT, true, initialWidth, initialHeight, IsDeviceAcceptable, ModifyDeviceSettings );
+	wideScreen = 1;
 
 //	DXUTSetConstantFrameTime( true, 0.033f );	// Doesn't seem to work
 
@@ -1972,6 +2124,38 @@ bool process_events(SDL_Joystick* joystick)
 	return true;
 }
 
+IDirect3DDevice9 pd3dDevice;
+#ifdef USE_SDL2
+SDL_Window *window = NULL;
+#endif
+
+#ifdef __EMSCRIPTEN__
+extern "C"
+void initialize_gl4es();
+double fLastTime;
+void em_main_loop()
+{
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	double fTime = DXUTGetTime();
+	process_events();	// no quit...
+	OnFrameMove( &pd3dDevice, fTime, fTime - fLastTime, NULL );
+	OnFrameRender( &pd3dDevice, fTime, fTime - fLastTime, NULL );
+#ifdef USE_SDL2
+	SDL_GL_SwapWindow(window);
+#else
+	SDL_GL_SwapBuffers();
+#endif
+
+	int32_t timetowait = (1.0f/50.0f - (fTime-fLastTime))*1000;
+	//int32_t timetowait = (1.0f/60.0f - (fTime-fLastTime))*1000;
+	if (timetowait>0)
+		SDL_Delay(timetowait);
+
+	fLastTime = fTime;
+}
+#endif
+
 int GL_MSAA = 0;
 
 static SDL_Joystick* open_joy()
@@ -2006,11 +2190,37 @@ static void close_joy(SDL_Joystick * joy)
 
 int main(int argc, const char** argv)
 {
+#ifdef __EMSCRIPTEN__
+	initialize_gl4es();
+#endif
+	char maintitle[50] = {0};
+	sprintf(maintitle, "StuntCarRemake v%d.%02d.%02d", V_MAJOR, V_MINOR, V_PATCH);
+	printf("%s\n", maintitle);
+	// get executable folder and cd into it...
+	// this is linux only, will not work on BSD or macOS
+	char buf[500];
+	ssize_t bufsized = readlink("/proc/self/exe", buf, sizeof(buf));
+	if(bufsized>0) {
+		char* p = strrchr(buf, '/');
+		if(*p) {
+			*p=0;
+			chdir(buf);
+			printf("chdir(\"%s\")\n", buf);
+		}
+	}
+#ifdef USE_SDL2
+	SDL_GLContext context = NULL;
+	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK)==-1) {
+		printf("Could not initialise SDL2: %s\n", SDL_GetError());
+		exit(-1);
+	}
+#else
 	SDL_Surface *screen = NULL;
 	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK | SDL_INIT_EVENTTHREAD)==-1) {
 		printf("Could not initialise SDL: %s\n", SDL_GetError());
 		exit(-1);
 	}
+#endif
 	atexit(SDL_Quit);
 
 	TTF_Init();
@@ -2022,6 +2232,9 @@ int main(int argc, const char** argv)
 	int fullscreen = 0;
 	int desktop = 0;
 	int givehelp = 0;
+	int customWidth = 0;
+	int customHeight = 0;
+	float customScale = 0.0f;
 
 	for (int i=1; i<argc; i++) {
 		if(!strcmp(argv[i], "-f"))
@@ -2036,10 +2249,37 @@ int main(int argc, const char** argv)
 			nomsaa = 1;
 		else if(!strcmp(argv[i], "--nomsaa"))
 			nomsaa = 1;
+		else if((!strcmp(argv[i], "-w") || !strcmp(argv[i], "--width")) && i+1 < argc) {
+			customWidth = atoi(argv[++i]);
+			if(customWidth <= 0) {
+				printf("Error: Invalid width value\n");
+				givehelp = 1;
+			}
+		}
+		else if((!strcmp(argv[i], "-h") || !strcmp(argv[i], "--height")) && i+1 < argc) {
+			customHeight = atoi(argv[++i]);
+			if(customHeight <= 0) {
+				printf("Error: Invalid height value\n");
+				givehelp = 1;
+			}
+		}
+		else if((!strcmp(argv[i], "-s") || !strcmp(argv[i], "--scale")) && i+1 < argc) {
+			customScale = static_cast<float>(atof(argv[++i]));
+			if(customScale <= 0.0f) {
+				printf("Error: Invalid scale value\n");
+				givehelp = 1;
+			}
+		}
 		else givehelp = 1;
 	}
 	if(givehelp) {
-		printf("Unrecognized parameter.\nOptions are:\n\t-f|--fullscreen\tUse fullscreen\n\t-n|--nomsaa\tDisable MSAA\n");
+		printf("Unrecognized parameter.\nOptions are:\n");
+		printf("\t-f|--fullscreen\t\tUse fullscreen\n");
+		printf("\t-d|--desktop\t\tUse desktop fullscreen\n");
+		printf("\t-n|--nomsaa\t\tDisable MSAA\n");
+		printf("\t-w|--width <pixels>\tSet window width (e.g., 640, 800, 1280)\n");
+		printf("\t-h|--height <pixels>\tSet window height (e.g., 480, 600, 720)\n");
+		printf("\t-s|--scale <factor>\tSet scale factor (e.g., 1.0, 1.5, 2.0)\n");
 		exit(0);
 	}
 
@@ -2049,7 +2289,7 @@ int main(int argc, const char** argv)
     SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 );
     SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
 
-#ifdef PANDORA
+#if defined(PANDORA)
 	int revision = 5;
 	FILE *f = fopen("/etc/powervr-esrev", "r");
 	if (f) {
@@ -2073,31 +2313,104 @@ int main(int argc, const char** argv)
 	int flags = 0;
 	wideScreen = 0;
 	int screenH, screenW, screenX, screenY;
+#ifdef USE_SDL2
+	flags = SDL_WINDOW_OPENGL;
+#else
 	flags = SDL_OPENGL | SDL_DOUBLEBUF;
+#endif
 	if(fullscreen)
+#ifdef USE_SDL2
+		flags |= SDL_WINDOW_FULLSCREEN;
+#else
 		flags |= SDL_FULLSCREEN;
+#endif
 #ifdef PANDORA
+#ifdef USE_SDL2
+		flags |= SDL_WINDOW_FULLSCREEN;
+#else
 	flags |= SDL_FULLSCREEN;
+#endif
 	screenW = 800; screenH = 480;
 #elif defined(CHIP)
+#ifdef USE_SDL2
+		flags |= SDL_WINDOW_FULLSCREEN;
+#else
 	flags |= SDL_FULLSCREEN;
+#endif
 	screenW = 480; screenH = 272;
 #else
-	if(desktop || fullscreen) {
+	// Use custom dimensions if provided
+	if(customWidth > 0 && customHeight > 0) {
+		screenW = customWidth;
+		screenH = customHeight;
+	} else if(desktop || fullscreen) {
+#ifdef USE_SDL2
+		flags |= (desktop)?SDL_WINDOW_FULLSCREEN_DESKTOP:SDL_WINDOW_FULLSCREEN;
+#else
 		flags |= SDL_FULLSCREEN;
+#endif
 		if(desktop) {
+#ifdef USE_SDL2
+			screenW = customWidth > 0 ? customWidth : 640;
+			screenH = customHeight > 0 ? customHeight : 480;
+#else
 			const SDL_VideoInfo* infos = SDL_GetVideoInfo();
-			screenW = infos->current_w;
-			screenH = infos->current_h;
+			screenW = customWidth > 0 ? customWidth : infos->current_w;
+			screenH = customHeight > 0 ? customHeight : infos->current_h;
+#endif
 		} else {
-			screenW = 640;
-			screenH = 480;
+			screenW = customWidth > 0 ? customWidth : 640;
+			screenH = customHeight > 0 ? customHeight : 480;
 		}
 	} else {
-		screenW = 800;
-		screenH = 480;
+		screenW = customWidth > 0 ? customWidth : 800;
+		screenH = customHeight > 0 ? customHeight : 480;
 	}
 #endif
+#ifdef USE_SDL2
+	window = SDL_CreateWindow(maintitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenW, screenH, flags);
+	if(window==NULL && GL_MSAA) {
+		// fallback to no MSAA
+		GL_MSAA=0;
+		SDL_GL_SetAttribute( SDL_GL_MULTISAMPLEBUFFERS, 0);
+		SDL_GL_SetAttribute( SDL_GL_MULTISAMPLESAMPLES, 0);
+		window = SDL_CreateWindow(maintitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenW, screenH, flags);
+	}
+	if(window==NULL) {
+		printf("Couldn't create Window (%dx%d): %s\n", screenW, screenH, SDL_GetError());
+		exit(-2);
+	}
+	context = SDL_GL_CreateContext(window);
+	if(context==NULL) {
+			printf("Couldn't create OpenGL Context: %s\n", SDL_GetError());
+			exit(-3);
+	}
+	SDL_GetWindowSize(window, &screenW, &screenH);
+	SDL_SetWindowTitle(window, maintitle);
+#endif
+	{
+		// icon...
+		int x,y,n;
+		unsigned char *img = stbi_load("Bitmap/icon.png", &x, &y, &n, STBI_rgb_alpha);
+		if(img) {
+			SDL_Surface *icon =
+			#ifdef USE_SDL2
+				SDL_CreateRGBSurfaceWithFormatFrom(img, x, y, 32, x*4, SDL_PIXELFORMAT_RGBA32);
+			#else
+				SDL_CreateRGBSurfaceFrom(img, x, y, 32, x*4, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+			#endif
+			if(icon) {
+				#ifdef USE_SDL2
+				SDL_SetWindowIcon(window, icon);
+				SDL_FreeSurface(icon);
+				#else
+				SDL_WM_SetIcon(icon, NULL);
+				#endif
+			}
+			free(img);
+		}
+	}
+#ifndef USE_SDL2
 	screen = SDL_SetVideoMode( screenW, screenH, 32, flags );
     if ( screen == NULL ) {
 		// fallback to no MSAA
@@ -2119,24 +2432,35 @@ int main(int argc, const char** argv)
 #endif
 	}
 
-    const char* name = "Stunt Car Remake";
-
-    SDL_WM_SetCaption(name, name);
-
-	// automatic guess the scale
+	SDL_WM_SetCaption(maintitle, NULL);
+#endif
+	// automatic guess the scale or use custom scale
 	float screenScale = 1.;
-	if(screenW/640. < screenH/480.)
-		screenScale = screenW/640.;
-	else
-		screenScale = screenH/480.;
-	// is it a Wide screen ration?
+	if(customScale > 0.0f) {
+		// Use custom scale factor
+		screenScale = customScale;
+	} else {
+		// Automatic scaling based on window size
+		if(screenW/640. < screenH/480.)
+			screenScale = screenW/640.;
+		else
+			screenScale = screenH/480.;
+	}
+	// is it a Wide screen ratio?
+	// Detect widescreen if width is significantly wider than 4:3 aspect ratio
 	if((screenW/screenScale - 640)>=80)
 		wideScreen=1;
 	screenX = (screenW-(wideScreen?800.:640.)*screenScale)/2.;
 	screenY = (screenH-480.*screenScale)/2.;
 	screenW = (wideScreen?800:640)*screenScale;
 	screenH = 480*screenScale;
+	printf("Display mode: %s, Scale: %.2f, Resolution: %dx%d\n",
+		   wideScreen ? "Widescreen" : "Standard", screenScale, screenW, screenH);
+#ifdef USE_SDL2
+	if(flags&SDL_WINDOW_FULLSCREEN || flags&SDL_WINDOW_FULLSCREEN_DESKTOP)
+#else
 	if(flags&SDL_FULLSCREEN)
+#endif
 		SDL_ShowCursor(SDL_DISABLE);
 	glViewport(screenX, screenY, screenW, screenH);
 	glMatrixMode(GL_PROJECTION);
@@ -2148,8 +2472,6 @@ int main(int argc, const char** argv)
 	glLoadIdentity();
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-	IDirect3DDevice9 pd3dDevice;
 
     D3DXMATRIX matProj;
 	FLOAT fAspect = screenW / 480.0f;
@@ -2166,7 +2488,6 @@ int main(int argc, const char** argv)
 
 	sound_init();
 
-	double fLastTime = DXUTGetTime();
 
 	CreateFonts();
 	LoadTextures();
@@ -2181,12 +2502,13 @@ int main(int argc, const char** argv)
 	DSInit();
 	DSSetMode();
 
-    InitTextHelper();
-
-	bool run = true;
 	glClearColor(0,0,0,1);
-	double fTime;
-	fLastTime = fTime = DXUTGetTime();
+#ifdef __EMSCRIPTEN__
+	fLastTime = DXUTGetTime();
+	emscripten_set_main_loop(em_main_loop, 0, 1);
+#else
+	bool run = true;
+	double fLastTime = DXUTGetTime();
     while( run ) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -2194,7 +2516,11 @@ int main(int argc, const char** argv)
 		run = process_events(joystick);
 		OnFrameMove( &pd3dDevice, fTime, fTime - fLastTime, NULL );
         OnFrameRender( &pd3dDevice, fTime, fTime - fLastTime, NULL );
+#ifdef USE_SDL2
+		SDL_GL_SwapWindow(window);
+#else
 		SDL_GL_SwapBuffers();
+#endif
 
 		int32_t timetowait = (1.0f/50.0f - (fTime-fLastTime))*1000;
 		//int32_t timetowait = (1.0f/60.0f - (fTime-fLastTime))*1000;
@@ -2203,10 +2529,10 @@ int main(int argc, const char** argv)
 
 		fLastTime = fTime;
     }
-
-    DestroyTextHelper();
-
+#endif
 	FreeData();
+
+	CloseFonts();
 
 	sound_destroy();
 
@@ -2214,7 +2540,7 @@ int main(int argc, const char** argv)
 
 	TTF_Quit();
 	SDL_Quit();
-	
+
 	exit(0);
 }
 #endif

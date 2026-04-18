@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Stunt Car Remake
+Comment=Remake of the old game Stunt Car Racer
+Exec=stuntcarracer
+Icon=stuntcarracer
+StartupWMClass=stuntcarracer
+Categories=Game;Simulation;
+
