@@ -4,7 +4,7 @@
 
 CC=g++
 #PANDORA=1
-DEBUG=1
+#DEBUG=1
 
 # general compiler settings
 ifeq ($(M32),1)
@@ -16,6 +16,12 @@ ifeq ($(PANDORA),1)
 	FLAGS+= -DARM
 	LDFLAGS= -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
 	#HAVE_GLES=1
+endif
+ifeq ($(PYRA),1)
+        FLAGS= -mcpu=cortex-a15 -mfpu=neon -mfloat-abi=hard -fsingle-precision-constant
+        FLAGS+= -DPYRA
+        FLAGS+= -DARM
+        LDFLAGS= -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp
 endif
 ifeq ($(ODROID),1)
         FLAGS= -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=hard -fsingle-precision-constant -O3 -fsigned-char
@@ -38,6 +44,17 @@ ifeq ($(CHIP),1)
         LDFLAGS= -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=hard
         #HAVE_GLES=1
 endif
+ifeq ($(EMSCRIPTEN),1)
+        FLAGS= -s FULL_ES2=1 -I../gl4es/include -s USE_SDL_TTF=2 -s USE_SDL=2
+        FLAGS+= -I/usr/include/glm
+        FLAGS+= -Dlinux -DUSE_SDL2
+        FLAGS+= --emrun --preload-file Tracks --preload-file Sounds
+        FLAGS+= --preload-file Bitmap --embed-file DejaVuSans-Bold.ttf
+        FLAGS+= --shell-file template.html
+        LDFLAGS= -s FULL_ES2=1 -s USE_SDL_TTF=2 -s USE_SDL=2
+        CC= emcc
+        CXX= emc++
+endif
 
 FLAGS+= -pipe -fpermissive
 CFLAGS=$(FLAGS) -Wno-conversion-null -Wno-write-strings -ICommon
@@ -52,6 +69,7 @@ endif
 
 ifeq ($(DEBUG),1)
 	FLAGS+= -g
+	CFLAGS+=-Og
 else
 	CFLAGS+=-O3 -Winit-self
 	LDFLAGS+=-s
@@ -65,23 +83,26 @@ ifeq ($(PROFILE),1)
 	FLAGS+= -pg
 endif
 
-SDL=1
-ifeq ($(SDL),1)
+#SDL=1
+ifeq ($(EMSCRIPTEN),1)
+	GL4ES = ../gl4es/lib/libGL.a
+	LIB+= -lopenal ${GL4ES}
+else
+ifeq ($(SDL),2)
+	SDL_=sdl2
+	TTF_ = SDL2_ttf
+	CFLAGS += -DUSE_SDL2
+else
 	SDL_=
 	CFLAGS+=`sdl-config --cflags`
 	TTF_ = SDL_ttf
-	IMAGE_ = SDL_image
-else
-	SDL_=sdl$(SDL)
-	TTF_ = SDL$(SDL)_ttf
-	IMAGE_ = SDL$(SDL)_image
 endif
 
 # library headers
 ifeq ($(PANDORA),1)
-	CFLAGS+= `pkg-config --cflags $(SDL_) $(TTF_) $(IMAGE_) libpng zlib openal`
+	CFLAGS+= `pkg-config --cflags $(SDL_) $(TTF_) openal`
 else
-	CFLAGS+= `pkg-config --cflags $(SDL_) $(TTF_) $(IMAGE_) libpng zlib openal`
+	CFLAGS+= `pkg-config --cflags $(SDL_) $(TTF_) openal`
 endif
 
 # dynamic only libraries
@@ -91,7 +112,7 @@ else
 	LIB+= `pkg-config --libs $(SDL_)`
 endif
 
-LIB+= `pkg-config --libs $(TTF_) $(IMAGE_)`
+LIB+= `pkg-config --libs $(TTF_)`
 
 ifeq ($(MINGW),1)
 	LIB += -L./mingw/bin
@@ -111,7 +132,7 @@ ifneq ($(MINGW),1)
 	# perhaps this is part of the default libs on others...?
 	LIB+= -ldl
 endif
-
+endif
 
 # specific includes
 CFLAGS += -I.
@@ -121,12 +142,22 @@ ifeq ($(DEBUG),1)
 	CFLAGS+= -DDEBUG_ON -DDEBUG_COMP -DDEBUG_SPOTFX_SOUND -DDEBUG_VIEWPORT
 endif
 
+ifeq ($(EMSCRIPTEN),1)
+BIN=docs/index.html
+else
 BIN=stuntcarracer
+endif
 
 
 INC=$(wildcard *.h)
 SRC=$(wildcard *.cpp)
+ifeq ($(EMSCRIPTEN),1)
+OBJ=$(patsubst %.cpp,%.bc,$(SRC))
+#Not in OBJ to avoid removal with a "clean" command
+INC+=${GL4ES}
+else
 OBJ=$(patsubst %.cpp,%.o,$(SRC))
+endif
 
 all: $(BIN)
 
@@ -136,6 +167,9 @@ $(BIN): $(OBJ)
 $(OBJ): $(INC)
 
 %.o: %.cpp
+	$(CC) -o $@ -c $< $(CFLAGS)
+
+%.bc: %.cpp
 	$(CC) -o $@ -c $< $(CFLAGS)
 
 clean:

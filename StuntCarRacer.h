@@ -7,6 +7,11 @@
 /*	========= */
 #define SCR_BASE_COLOUR	26
 
+// Screen resolution constants
+#define BASE_WIDTH_STANDARD		640		// Standard 4:3 base width
+#define BASE_WIDTH_WIDESCREEN	800		// Widescreen 16:10 base width
+#define BASE_HEIGHT				480		// Base height for both modes
+
 typedef enum
 	{
 	TRACK_MENU = 0,

@@ -11,26 +11,44 @@
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
+#ifdef USE_SDL2
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
+#else
 #include <SDL/SDL.h>
 #include <SDL/SDL_ttf.h>
-//#include <AL/al.h>
+#include <SDL/SDL_image.h>
+#endif
+#include <AL/al.h>
 #include <wchar.h>
 #define USEGLM
 #ifdef USEGLM
-#define GL_FORCE_RADIANS
-//#define GLM_LEFT_HANDED 
-#include <glm/glm.hpp>		
-#include <glm/gtc/type_ptr.hpp>		
+#define GLM_FORCE_RADIANS
+//#define GLM_LEFT_HANDED
+#ifdef __EMSCRIPTEN__
+#include <../glm/glm.hpp>
+#include <../glm/gtc/type_ptr.hpp>
+#include <../glm/gtc/matrix_transform.hpp>
+#else
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#endif
 #else
 #include "matvec.h"
 #endif
+#define STBI_NO_PSD
+#define STBI_NO_GIF
+#define STBI_NO_HDR
+#define STBI_NO_PIC
+#define STBI_NO_PNM
+#include "stb_image.h"
 
 // DX -> OpenGL inspired by forsaken project
 typedef uint32_t DWORD;
-//typedef uint8_t BYTE;
-//typedef uint16_t WORD;
-//typedef uint32_t BOOL;
+typedef uint8_t BYTE;
+typedef uint16_t WORD;
+typedef uint32_t BOOL;
 
 typedef const wchar_t* LPCWSTR;
 
@@ -44,7 +62,7 @@ typedef int32_t INT;
 typedef BYTE *LPBYTE;
 
 #define D3DX_PI PI
-#define CALLBACK 
+#define CALLBACK
 
 //#define TRUE true
 //#define FALSE false
@@ -455,9 +473,9 @@ HRESULT DirectSoundCreate8(LPCGUID lpcGuidDevice, LPDIRECTSOUND8 * ppDS8, LPUNKN
 #define DXUTGetHWND() 0
 
 /*=============================================================
- * 
+ *
  * Matrix functions
- * 
+ *
 ===============================================================*/
 #ifdef USEGLM
 #define D3DXMATRIX glm::mat4
@@ -478,11 +496,11 @@ D3DXMATRIX* D3DXMatrixScaling(D3DXMATRIX *pOut, FLOAT sx, FLOAT sy, FLOAT sz);
 D3DXMATRIX* D3DXMatrixMultiply(D3DXMATRIX* pOut, const D3DXMATRIX* pM1, const D3DXMATRIX* pM2);
 D3DXMATRIX* D3DXMatrixLookAtLH(D3DXMATRIX* pOut, const D3DXVECTOR3* pEye, const D3DXVECTOR3* pAt, const D3DXVECTOR3* pUp);
 /*=============================================================
- * 
+ *
  * IDirect3DDevice9
- * 
+ *
 ===============================================================*/
-typedef enum D3DTRANSFORMSTATETYPE { 
+typedef enum D3DTRANSFORMSTATETYPE {
   D3DTS_VIEW         = 2,
   D3DTS_PROJECTION   = 3,
   D3DTS_WORLD        = 4,
@@ -497,7 +515,7 @@ typedef enum D3DTRANSFORMSTATETYPE {
   D3DTS_FORCE_DWORD  = 0x7fffffff
 } D3DTRANSFORMSTATETYPE, *LPD3DTRANSFORMSTATETYPE;
 
-typedef enum D3DRENDERSTATETYPE { 
+typedef enum D3DRENDERSTATETYPE {
   D3DRS_ZENABLE                     = 7,
   D3DRS_FILLMODE                    = 8,
   D3DRS_SHADEMODE                   = 9,
@@ -604,14 +622,14 @@ typedef enum D3DRENDERSTATETYPE {
   D3DRS_FORCE_DWORD                 = 0x7fffffff
 } D3DRENDERSTATETYPE, *LPD3DRENDERSTATETYPE;
 
-typedef enum D3DCULL { 
+typedef enum D3DCULL {
   D3DCULL_NONE         = 1,
   D3DCULL_CW           = 2,
   D3DCULL_CCW          = 3,
   D3DCULL_FORCE_DWORD  = 0x7fffffff
 } D3DCULL, *LPD3DCULL;
 
-typedef enum D3DPRIMITIVETYPE { 
+typedef enum D3DPRIMITIVETYPE {
   D3DPT_POINTLIST      = 1,
   D3DPT_LINELIST       = 2,
   D3DPT_LINESTRIP      = 3,
@@ -621,7 +639,7 @@ typedef enum D3DPRIMITIVETYPE {
   D3DPT_FORCE_DWORD    = 0x7fffffff
 } D3DPRIMITIVETYPE, *LPD3DPRIMITIVETYPE;
 
-typedef enum D3DTEXTURESTAGESTATETYPE { 
+typedef enum D3DTEXTURESTAGESTATETYPE {
   D3DTSS_COLOROP                = 1,
   D3DTSS_COLORARG1              = 2,
   D3DTSS_COLORARG2              = 3,
@@ -643,7 +661,7 @@ typedef enum D3DTEXTURESTAGESTATETYPE {
   D3DTSS_FORCE_DWORD            = 0x7fffffff
 } D3DTEXTURESTAGESTATETYPE, *LPD3DTEXTURESTAGESTATETYPE;
 
-typedef enum D3DTEXTUREOP { 
+typedef enum D3DTEXTUREOP {
   D3DTOP_DISABLE                    = 1,
   D3DTOP_SELECTARG1                 = 2,
   D3DTOP_SELECTARG2                 = 3,
@@ -673,7 +691,7 @@ typedef enum D3DTEXTUREOP {
   D3DTOP_FORCE_DWORD                = 0x7fffffff
 } D3DTEXTUREOP, *LPD3DTEXTUREOP;
 
-typedef enum D3DBLEND { 
+typedef enum D3DBLEND {
   D3DBLEND_ZERO             = 1,
   D3DBLEND_ONE              = 2,
   D3DBLEND_SRCCOLOR         = 3,
@@ -742,7 +760,7 @@ typedef struct D3DRECT {
 #define D3DFVF_TEX1       (1<<6)
 
 
-typedef enum D3DPOOL { 
+typedef enum D3DPOOL {
   D3DPOOL_DEFAULT      = 0,
   D3DPOOL_MANAGED      = 1,
   D3DPOOL_SYSTEMMEM    = 2,
@@ -860,5 +878,7 @@ void DXUTReset3DEnvironment();
 
 #define ZeroMemory(a, b) memset(a, 0, b)
 #define CopyMemory(a, b, c) memcpy(a, b, c)
+
+#define OutputDebugStringW(A) printf("%S", A)
 
 #endif //_DX_LINUX_H_

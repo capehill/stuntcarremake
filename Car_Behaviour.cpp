@@ -681,8 +681,8 @@ void LimitViewpointY (long *y)
 		// Use the CalculateActualWheelHeights() calculations in reverse, with road height, to calculate adjusted player_y
 		/*
 		front_right_actual_height = player_y;
-		front_right_actual_height += ((long)sin_x << (4+15-LOG_PRECISION));
-		front_right_actual_height -= ((long)sin_z << (3+15-LOG_PRECISION));
+		front_right_actual_height += (static_cast<long>(sin_x) << (4+15-LOG_PRECISION));
+		front_right_actual_height -= (static_cast<long>(sin_z) << (3+15-LOG_PRECISION));
 		front_right_actual_height >>= 8;
 		*/
 #if 0
@@ -692,8 +692,8 @@ void LimitViewpointY (long *y)
 #endif
 			ry = (front_right_road_height - Y_ADJUSTMENT_THRESHOLD) << 8;
 
-		ry += ((long)sin_z << (3+15-LOG_PRECISION));
-		ry -= ((long)sin_x << (4+15-LOG_PRECISION));
+		ry += (static_cast<long>(sin_z) << (3+15-LOG_PRECISION));
+		ry -= (static_cast<long>(sin_x) << (4+15-LOG_PRECISION));
 //		VALUE2 = ry;
 		}
 
@@ -704,8 +704,8 @@ void LimitViewpointY (long *y)
 		// Use the CalculateActualWheelHeights() calculations in reverse, with road height, to calculate adjusted player_y
 		/*
 		front_left_actual_height = player_y;
-		front_left_actual_height += ((long)sin_x << (4+15-LOG_PRECISION));
-		front_left_actual_height += ((long)sin_z << (3+15-LOG_PRECISION));
+		front_left_actual_height += (static_cast<long>(sin_x) << (4+15-LOG_PRECISION));
+		front_left_actual_height += (static_cast<long>(sin_z) << (3+15-LOG_PRECISION));
 		front_left_actual_height >>= 8;
 		*/
 #if 0
@@ -715,8 +715,8 @@ void LimitViewpointY (long *y)
 #endif
 			ly = (front_left_road_height - Y_ADJUSTMENT_THRESHOLD) << 8;
 
-		ly -= ((long)sin_z << (3+15-LOG_PRECISION));
-		ly -= ((long)sin_x << (4+15-LOG_PRECISION));
+		ly -= (static_cast<long>(sin_z) << (3+15-LOG_PRECISION));
+		ly -= (static_cast<long>(sin_x) << (4+15-LOG_PRECISION));
 //		VALUE3 = ly;
 		}
 
@@ -872,14 +872,14 @@ static void CarControl (DWORD input)
 
 
 static void BoostPower (long boost_flag,
-						long accelerate,
-						long brake)
+						long accel_flag,
+						long brake_flag)
 	{
 	boost_activated = 0;
 
 	if ((! boost_flag) && (NOT_WRECKED))
 		{
-		if (accelerating || (accelerate || brake))
+		if (accelerating || (accel_flag || brake_flag))
 			{
 			if (boostReserve > 0)
 				{
@@ -1071,20 +1071,20 @@ static void CalculateWheelXZOffsets (void)
 	short *trig_coeffs = TrigCoefficients();
 
 	// rear wheel is just (0, 0, -CAR_LENGTH/2) split into components
-	rear_wheel_x_offset = ((long)trig_coeffs[Z_X_COMP] * (-CAR_LENGTH/2) * PC_FACTOR);
-	rear_wheel_z_offset = ((long)trig_coeffs[Z_Z_COMP] * (-CAR_LENGTH/2) * PC_FACTOR);
+	rear_wheel_x_offset = (static_cast<long>(trig_coeffs[Z_X_COMP]) * (-CAR_LENGTH/2) * PC_FACTOR);
+	rear_wheel_z_offset = (static_cast<long>(trig_coeffs[Z_Z_COMP]) * (-CAR_LENGTH/2) * PC_FACTOR);
 
 	// front left wheel is just (-CAR_WIDTH/2, 0, CAR_LENGTH/2) split into components
-	front_left_wheel_x_offset = ((long)trig_coeffs[X_X_COMP] * (-CAR_WIDTH/2) * PC_FACTOR);
-	front_left_wheel_x_offset += ((long)trig_coeffs[Z_X_COMP] * (CAR_LENGTH/2) * PC_FACTOR);
-	front_left_wheel_z_offset = ((long)trig_coeffs[X_Z_COMP] * (-CAR_WIDTH/2) * PC_FACTOR);
-	front_left_wheel_z_offset += ((long)trig_coeffs[Z_Z_COMP] * (CAR_LENGTH/2) * PC_FACTOR);
+	front_left_wheel_x_offset = (static_cast<long>(trig_coeffs[X_X_COMP]) * (-CAR_WIDTH/2) * PC_FACTOR);
+	front_left_wheel_x_offset += (static_cast<long>(trig_coeffs[Z_X_COMP]) * (CAR_LENGTH/2) * PC_FACTOR);
+	front_left_wheel_z_offset = (static_cast<long>(trig_coeffs[X_Z_COMP]) * (-CAR_WIDTH/2) * PC_FACTOR);
+	front_left_wheel_z_offset += (static_cast<long>(trig_coeffs[Z_Z_COMP]) * (CAR_LENGTH/2) * PC_FACTOR);
 
 	// front right wheel is just (CAR_WIDTH/2, 0, CAR_LENGTH/2) split into components
-	front_right_wheel_x_offset = ((long)trig_coeffs[X_X_COMP] * (CAR_WIDTH/2) * PC_FACTOR);
-	front_right_wheel_x_offset += ((long)trig_coeffs[Z_X_COMP] * (CAR_LENGTH/2) * PC_FACTOR);
-	front_right_wheel_z_offset = ((long)trig_coeffs[X_Z_COMP] * (CAR_WIDTH/2) * PC_FACTOR);
-	front_right_wheel_z_offset += ((long)trig_coeffs[Z_Z_COMP] * (CAR_LENGTH/2) * PC_FACTOR);
+	front_right_wheel_x_offset = (static_cast<long>(trig_coeffs[X_X_COMP]) * (CAR_WIDTH/2) * PC_FACTOR);
+	front_right_wheel_x_offset += (static_cast<long>(trig_coeffs[Z_X_COMP]) * (CAR_LENGTH/2) * PC_FACTOR);
+	front_right_wheel_z_offset = (static_cast<long>(trig_coeffs[X_Z_COMP]) * (CAR_WIDTH/2) * PC_FACTOR);
+	front_right_wheel_z_offset += (static_cast<long>(trig_coeffs[Z_Z_COMP]) * (CAR_LENGTH/2) * PC_FACTOR);
 
 	// could also possibly work out the wheel y offsets here
 	// rather than doing it in calculate.actual.wheel.heights
@@ -1792,15 +1792,15 @@ static void CalcSurfacePosition (long piece,
 
 
 		// calculate surface x position
-		if (distance_from_centre < (double)radius)
-			d = (double)radius - distance_from_centre;
+		if (distance_from_centre < static_cast<double>(radius))
+			d = static_cast<double>(radius) - distance_from_centre;
 		else
-			d = distance_from_centre - (double)radius;
+			d = distance_from_centre - static_cast<double>(radius);
 
-		surface_x = ((long)((d * SURFACE_SIZE) / (ROAD_WIDTH * PC_FACTOR)));
+		surface_x = (static_cast<long>((d * SURFACE_SIZE) / (ROAD_WIDTH * PC_FACTOR)));
 		// Also calculate road_x if required (it has a different range to surface_x)
 		if (road_x)
-			*road_x = ((long)(d / PC_FACTOR));
+			*road_x = (static_cast<long>(d / PC_FACTOR));
 
 		if (surface_x >= SURFACE_SIZE) surface_x = SURFACE_SIZE-1;
 		*sx = surface_x;
@@ -1911,21 +1911,21 @@ static void CalculateActualWheelHeights (void)
 
 	rear_actual_height = player_y;
 	// 29/06/1998 - sign changed on next line
-	rear_actual_height -= ((long)sin_x << (4+15-LOG_PRECISION));
+	rear_actual_height -= (static_cast<long>(sin_x) << (4+15-LOG_PRECISION));
 	rear_actual_height >>= 8;
 
 	front_right_actual_height = player_y;
 	// 29/06/1998 - sign changed on next line
-	front_right_actual_height += ((long)sin_x << (4+15-LOG_PRECISION));
+	front_right_actual_height += (static_cast<long>(sin_x) << (4+15-LOG_PRECISION));
 	// 29/06/1998 - sign changed on next line
-	front_right_actual_height -= ((long)sin_z << (3+15-LOG_PRECISION));
+	front_right_actual_height -= (static_cast<long>(sin_z) << (3+15-LOG_PRECISION));
 	front_right_actual_height >>= 8;
 
 	front_left_actual_height = player_y;
 	// 29/06/1998 - sign changed on next line
-	front_left_actual_height += ((long)sin_x << (4+15-LOG_PRECISION));
+	front_left_actual_height += (static_cast<long>(sin_x) << (4+15-LOG_PRECISION));
 	// 29/06/1998 - sign changed on next line
-	front_left_actual_height += ((long)sin_z << (3+15-LOG_PRECISION));
+	front_left_actual_height += (static_cast<long>(sin_z) << (3+15-LOG_PRECISION));
 	front_left_actual_height >>= 8;
 	return;
 	}
@@ -1944,21 +1944,21 @@ static void CalculateXZSpeeds (void)
 	// this function basically does the same as RotateCoordinate,
 	// then removes the precision from the resulting values
 
-	player_x_speed =  ((player_world_x_speed * (long)trig_coeffs[X_X_COMP]) >> LOG_PRECISION);
-	player_x_speed += ((player_world_y_speed * (long)trig_coeffs[X_Y_COMP]) >> LOG_PRECISION);
-	player_x_speed += ((player_world_z_speed * (long)trig_coeffs[X_Z_COMP]) >> LOG_PRECISION);
+	player_x_speed =  ((player_world_x_speed * static_cast<long>(trig_coeffs[X_X_COMP])) >> LOG_PRECISION);
+	player_x_speed += ((player_world_y_speed * static_cast<long>(trig_coeffs[X_Y_COMP])) >> LOG_PRECISION);
+	player_x_speed += ((player_world_z_speed * static_cast<long>(trig_coeffs[X_Z_COMP])) >> LOG_PRECISION);
 
 	player_y_speed = 0;	// zero for current implementation
 
 // player's Y speed not used but would be calculated as :-
 //
-//	player_y_speed =  ((player_world_x_speed * (long)trig_coeffs[Y_X_COMP]) >> LOG_PRECISION);
-//	player_y_speed += ((player_world_y_speed * (long)trig_coeffs[Y_Y_COMP]) >> LOG_PRECISION);
-//	player_y_speed += ((player_world_z_speed * (long)trig_coeffs[Y_Z_COMP]) >> LOG_PRECISION);
+//	player_y_speed =  ((player_world_x_speed * static_cast<long>(trig_coeffs[Y_X_COMP])) >> LOG_PRECISION);
+//	player_y_speed += ((player_world_y_speed * static_cast<long>(trig_coeffs[Y_Y_COMP])) >> LOG_PRECISION);
+//	player_y_speed += ((player_world_z_speed * static_cast<long>(trig_coeffs[Y_Z_COMP])) >> LOG_PRECISION);
 
-	player_z_speed =  ((player_world_x_speed * (long)trig_coeffs[Z_X_COMP]) >> LOG_PRECISION);
-	player_z_speed += ((player_world_y_speed * (long)trig_coeffs[Z_Y_COMP]) >> LOG_PRECISION);
-	player_z_speed += ((player_world_z_speed * (long)trig_coeffs[Z_Z_COMP]) >> LOG_PRECISION);
+	player_z_speed =  ((player_world_x_speed * static_cast<long>(trig_coeffs[Z_X_COMP])) >> LOG_PRECISION);
+	player_z_speed += ((player_world_y_speed * static_cast<long>(trig_coeffs[Z_Y_COMP])) >> LOG_PRECISION);
+	player_z_speed += ((player_world_z_speed * static_cast<long>(trig_coeffs[Z_Z_COMP])) >> LOG_PRECISION);
 	return;
 }
 
@@ -1983,7 +1983,7 @@ set.wheel.rotation.speed :-
 		}
 
 	// touching road
-	if (abs(players.z.speed) < 0x800)
+	if (abs(players.z.speed) < WHEEL_SPEED_LOW_THRESHOLD)
 		{
 		// multiply by 8 and use as wheel speed
 		wheel.rotation.speed = abs(players.z.speed) * 8;
@@ -1991,32 +1991,32 @@ set.wheel.rotation.speed :-
 	else
 		{
 		// double it, add $3000 and use as wheel speed
-		wheel.rotation.speed = (abs(players.z.speed) * 2) + 0x3000;
-		if (wheel.rotation.speed > 0xffff)
-			wheel.rotation.speed = 0xff00;		// set to maximum value
+		wheel.rotation.speed = (abs(players.z.speed) * 2) + WHEEL_SPEED_HIGH_OFFSET;
+		if (wheel.rotation.speed > WHEEL_SPEED_MAX)
+			wheel.rotation.speed = WHEEL_SPEED_MAX_CLAMPED;		// set to maximum value
 		}
 	return;
 */
-static void SetOneWheelRotationSpeed(long touching_road, long player_z_speed, long *wheel_rotation_speed)
+static void SetOneWheelRotationSpeed(long wheel_touching_road, long wheel_z_speed, long *wheel_rotation_speed)
 {
-	if(touching_road == 0) 
+	if(wheel_touching_road == 0) 
 	{
 		// Not touching road, so reduce wheel speed by one quarter
 		long reduction = (*wheel_rotation_speed) / 4;
 		*wheel_rotation_speed -= reduction;
 		return;
 	}
-	if(abs(player_z_speed) < 0x800)
+	if(abs(wheel_z_speed) < WHEEL_SPEED_LOW_THRESHOLD)
 		{
 		// multiply by 8 and use as wheel speed
-		*wheel_rotation_speed = abs(player_z_speed) * 8;
+		*wheel_rotation_speed = abs(wheel_z_speed) * 8;
 		}
 	else
 		{
 		// double it, add $3000 and use as wheel speed
-		*wheel_rotation_speed = (abs(player_z_speed) * 2) + 0x3000;
-		if (*wheel_rotation_speed > 0xffff)
-			*wheel_rotation_speed = 0xff00;		// set to maximum value
+		*wheel_rotation_speed = (abs(wheel_z_speed) * 2) + WHEEL_SPEED_HIGH_OFFSET;
+		if (*wheel_rotation_speed > WHEEL_SPEED_MAX)
+			*wheel_rotation_speed = WHEEL_SPEED_MAX_CLAMPED;		// set to maximum value
 		}
 }
 
@@ -2041,15 +2041,15 @@ static void CalculateGravityAcceleration (void)
 
 	// Acceleration along car's X axis
 	gravity_x_acceleration = ((-GRAVITY_ACCELERATION *
-											(long)trig_coeffs[X_Y_COMP]) >> LOG_PRECISION);
+											static_cast<long>(trig_coeffs[X_Y_COMP])) >> LOG_PRECISION);
 
 	// Acceleration along car's Y axis
 	gravity_y_acceleration = ((-GRAVITY_ACCELERATION *
-											(long)trig_coeffs[Y_Y_COMP]) >> LOG_PRECISION);
+											static_cast<long>(trig_coeffs[Y_Y_COMP])) >> LOG_PRECISION);
 
 	// Acceleration along car's Z axis
 	gravity_z_acceleration = ((-GRAVITY_ACCELERATION *
-											(long)trig_coeffs[Z_Y_COMP]) >> LOG_PRECISION);
+											static_cast<long>(trig_coeffs[Z_Y_COMP])) >> LOG_PRECISION);
 
 #ifdef	HIGHER_FRAME_RATE
 	// 08/11/1998 - allow four times the frame rate by dividing accelerations by four
@@ -2624,7 +2624,7 @@ static void CalculateSteering (void)
 	pos_difference_angle = abs(y_angle_difference);
 
 	// Save a scaled positive difference angle ranging from 0 to $7fff
-	if (pos_difference_angle < 0x800)
+	if (pos_difference_angle < WHEEL_SPEED_LOW_THRESHOLD)
 		scaled_pos_difference_angle = pos_difference_angle << 4;
 	else
 		scaled_pos_difference_angle = 0x7fff;	// set to maximum
@@ -2981,17 +2981,17 @@ static void CalculateWorldAcceleration (void)
 	// this function basically does the same as WorldOffset,
 	// then removes the precision from the resulting values
 
-	total_world_x_acceleration =  ((player_x_acceleration * (long)trig_coeffs[X_X_COMP]) >> LOG_PRECISION);
-	total_world_x_acceleration += ((player_y_acceleration * (long)trig_coeffs[Y_X_COMP]) >> LOG_PRECISION);
-	total_world_x_acceleration += ((player_z_acceleration * (long)trig_coeffs[Z_X_COMP]) >> LOG_PRECISION);
+	total_world_x_acceleration =  ((player_x_acceleration * static_cast<long>(trig_coeffs[X_X_COMP])) >> LOG_PRECISION);
+	total_world_x_acceleration += ((player_y_acceleration * static_cast<long>(trig_coeffs[Y_X_COMP])) >> LOG_PRECISION);
+	total_world_x_acceleration += ((player_z_acceleration * static_cast<long>(trig_coeffs[Z_X_COMP])) >> LOG_PRECISION);
 
-	total_world_y_acceleration =  ((player_x_acceleration * (long)trig_coeffs[X_Y_COMP]) >> LOG_PRECISION);
-	total_world_y_acceleration += ((player_y_acceleration * (long)trig_coeffs[Y_Y_COMP]) >> LOG_PRECISION);
-	total_world_y_acceleration += ((player_z_acceleration * (long)trig_coeffs[Z_Y_COMP]) >> LOG_PRECISION);
+	total_world_y_acceleration =  ((player_x_acceleration * static_cast<long>(trig_coeffs[X_Y_COMP])) >> LOG_PRECISION);
+	total_world_y_acceleration += ((player_y_acceleration * static_cast<long>(trig_coeffs[Y_Y_COMP])) >> LOG_PRECISION);
+	total_world_y_acceleration += ((player_z_acceleration * static_cast<long>(trig_coeffs[Z_Y_COMP])) >> LOG_PRECISION);
 
-	total_world_z_acceleration =  ((player_x_acceleration * (long)trig_coeffs[X_Z_COMP]) >> LOG_PRECISION);
-	total_world_z_acceleration += ((player_y_acceleration * (long)trig_coeffs[Y_Z_COMP]) >> LOG_PRECISION);
-	total_world_z_acceleration += ((player_z_acceleration * (long)trig_coeffs[Z_Z_COMP]) >> LOG_PRECISION);
+	total_world_z_acceleration =  ((player_x_acceleration * static_cast<long>(trig_coeffs[X_Z_COMP])) >> LOG_PRECISION);
+	total_world_z_acceleration += ((player_y_acceleration * static_cast<long>(trig_coeffs[Y_Z_COMP])) >> LOG_PRECISION);
+	total_world_z_acceleration += ((player_z_acceleration * static_cast<long>(trig_coeffs[Z_Z_COMP])) >> LOG_PRECISION);
 	return;
 	}
 
@@ -3160,16 +3160,16 @@ static void CalculateFinalRotationSpeed (void)
 	// PC StuntCarRacer Z rotation (i.e. RotX = Xcosz - Ysinz, RotY = Xsinz + Ycosz)
 	// and so does X rotation
 
-	player_final_x_rotation_speed =  ((player_x_rotation_speed * (long)cos_z) >> LOG_PRECISION);
-	player_final_x_rotation_speed += ((player_y_rotation_speed * (long)-sin_z) >> LOG_PRECISION);
+	player_final_x_rotation_speed =  ((player_x_rotation_speed * static_cast<long>(cos_z)) >> LOG_PRECISION);
+	player_final_x_rotation_speed += ((player_y_rotation_speed * static_cast<long>(-sin_z)) >> LOG_PRECISION);
 
-	player_final_y_rotation_speed =  ((player_x_rotation_speed * (long)sin_z) >> LOG_PRECISION);
-	player_final_y_rotation_speed += ((player_y_rotation_speed * (long)cos_z) >> LOG_PRECISION);
+	player_final_y_rotation_speed =  ((player_x_rotation_speed * static_cast<long>(sin_z)) >> LOG_PRECISION);
+	player_final_y_rotation_speed += ((player_y_rotation_speed * static_cast<long>(cos_z)) >> LOG_PRECISION);
 
 	// Calculate final Z rotation speed by rotating Y rotation speed about
 	// the X axis and adding it onto the Z rotation speed.
 	player_final_z_rotation_speed =  player_z_rotation_speed;
-	player_final_z_rotation_speed += ((player_final_y_rotation_speed * (long)sin_x) >> LOG_PRECISION);
+	player_final_z_rotation_speed += ((player_final_y_rotation_speed * static_cast<long>(sin_x)) >> LOG_PRECISION);
 	return;
 	}
 
@@ -3455,8 +3455,8 @@ static void CalcCurveMeasurements (long piece,
 
 		zc = zf;
 
-		o = (double)(z - zc);
-		a = (double)(x - xc);
+		o = static_cast<double>(z - zc);
+		a = static_cast<double>(x - xc);
 		}
 	else if (zo != zf)
 		{
@@ -3468,8 +3468,8 @@ static void CalcCurveMeasurements (long piece,
 		else
 			zc = zf - radius;
 
-		o = (double)(x - xc);
-		a = (double)(z - zc);
+		o = static_cast<double>(x - xc);
+		a = static_cast<double>(z - zc);
 		}
 	else
 		{
@@ -3481,17 +3481,17 @@ static void CalcCurveMeasurements (long piece,
 
 	// use inverse tan to calculate basic angle in radians
 	if (a == 0)		// prevent division by zero
-		radians = (double)PI / (double)2;	// 90 degrees
+		radians = static_cast<double>(PI) / static_cast<double>(2);	// 90 degrees
 	else
 		radians = atan(o/a);	// inverse tan
 
 	// convert radians to internal angle (also round up)
-	angle = ((radians * (double)MAX_ANGLE) / ((double)2 * (double)PI));
+	angle = ((radians * static_cast<double>(MAX_ANGLE)) / (static_cast<double>(2) * static_cast<double>(PI)));
 	// convert to absolute and round up as follows (because abs() isn't for doubles)
 	if (angle > 0)
-		*y_angle_out = (long)(angle + (double)0.5);
+		*y_angle_out = static_cast<long>(angle + static_cast<double>(0.5));
 	else
-		*y_angle_out = (long)((double)0.5 - angle);
+		*y_angle_out = static_cast<long>(static_cast<double>(0.5) - angle);
 
 
 	// output radius
@@ -3525,8 +3525,8 @@ long AmigaVolumeToDirectX (long amiga_volume)
 
 		for ( i = 1; i < (MAX_AMIGA_VOLUME+1); i++ )
 			{
-			db = (double)20 * log10((double)i/(double)MAX_AMIGA_VOLUME);
-			directx_volume[i] = (long)(db * (double)DIRECTX_VOLUME_FACTOR);
+			db = static_cast<double>(20) * log10(static_cast<double>(i)/static_cast<double>(MAX_AMIGA_VOLUME));
+			directx_volume[i] = static_cast<long>(db * static_cast<double>(DIRECTX_VOLUME_FACTOR));
 			}
 
 		first_time = FALSE;
@@ -3641,8 +3641,8 @@ static void PositionCarAbovePiece (long piece)
 	 */
 	short sin_y, cos_y;
 	GetSinCos(player_y_angle, &sin_y, &cos_y);
-	player_x += (160 * (long)cos_y);
-	player_z -= (160 * (long)sin_y);
+	player_x += (160 * static_cast<long>(cos_y));
+	player_z -= (160 * static_cast<long>(sin_y));
 }
 
 
@@ -3801,8 +3801,8 @@ fwe3	move.w	sprite.DMA.value,dmacon+custom
 */
 // wheel update
 
-leftwheel_angle = (leftwheel_angle+front_left_wheel_speed)&0xfffff;
-rightwheel_angle = (leftwheel_angle+front_right_wheel_speed)&0xfffff;
+leftwheel_angle = (leftwheel_angle+front_left_wheel_speed)&WHEEL_ANGLE_MASK;
+rightwheel_angle = (leftwheel_angle+front_right_wheel_speed)&WHEEL_ANGLE_MASK;
 
 int period, index;
 DWORD freq;
@@ -4234,7 +4234,7 @@ static void PlayBack (DWORD *input)
 	{
 	if (RecordingIndex < EndOfRecording)
 		{
-		*input = (DWORD)RecordingBuffer[RecordingIndex].input;
+		*input = static_cast<DWORD>(RecordingBuffer[RecordingIndex].input);
 		++RecordingIndex;
 		}
 	else
@@ -4379,7 +4379,7 @@ size_t i;
 
 	s = ((b[0] & 0xff) << 8) | (b[1] & 0xff);
 
-	*value_out = (long)s;
+	*value_out = static_cast<long>(s);
 	return(TRUE);
 }
 

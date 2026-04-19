@@ -73,11 +73,11 @@ void CreateSinCosTable( void )
 	double angle, step, value;
 
 	angle = 0;
-	step = ((double)2 * (double)PI) / (double)MAX_ANGLE;
+	step = (static_cast<double>(2) * static_cast<double>(PI)) / static_cast<double>(MAX_ANGLE);
 	for ( i = 0; i < SIN_COS_TABLE_SIZE; i++ )
 		{
 		value = sin( angle );
-		value = value * (double)PRECISION;
+		value = value * static_cast<double>(PRECISION);
 
 		Sin_Cos[i] = (short)value;
 		angle += step;
@@ -232,17 +232,17 @@ void RotateCoordinate( long *xptr,
 	y = *yptr;
 	z = *zptr;
 
-	*xptr = (x * (long)Trig_Coeffs[X_X_COMP]) +
-			(y * (long)Trig_Coeffs[X_Y_COMP]) +
-			(z * (long)Trig_Coeffs[X_Z_COMP]);
+	*xptr = (x * static_cast<long>(Trig_Coeffs[X_X_COMP])) +
+			(y * static_cast<long>(Trig_Coeffs[X_Y_COMP])) +
+			(z * static_cast<long>(Trig_Coeffs[X_Z_COMP]));
 
-	*yptr = (x * (long)Trig_Coeffs[Y_X_COMP]) +
-			(y * (long)Trig_Coeffs[Y_Y_COMP]) +
-			(z * (long)Trig_Coeffs[Y_Z_COMP]);
+	*yptr = (x * static_cast<long>(Trig_Coeffs[Y_X_COMP])) +
+			(y * static_cast<long>(Trig_Coeffs[Y_Y_COMP])) +
+			(z * static_cast<long>(Trig_Coeffs[Y_Z_COMP]));
 
-	*zptr = (x * (long)Trig_Coeffs[Z_X_COMP]) +
-			(y * (long)Trig_Coeffs[Z_Y_COMP]) +
-			(z * (long)Trig_Coeffs[Z_Z_COMP]);
+	*zptr = (x * static_cast<long>(Trig_Coeffs[Z_X_COMP])) +
+			(y * static_cast<long>(Trig_Coeffs[Z_Y_COMP])) +
+			(z * static_cast<long>(Trig_Coeffs[Z_Z_COMP]));
 	}
 #endif
 /*	======================================================================================= */
@@ -262,17 +262,17 @@ void WorldOffset( long *xptr,
 	y = *yptr;
 	z = *zptr;
 
-	*xptr = (x * (long)Trig_Coeffs[X_X_COMP]) +
-			(y * (long)Trig_Coeffs[Y_X_COMP]) +
-			(z * (long)Trig_Coeffs[Z_X_COMP]);
+	*xptr = (x * static_cast<long>(Trig_Coeffs[X_X_COMP])) +
+			(y * static_cast<long>(Trig_Coeffs[Y_X_COMP])) +
+			(z * static_cast<long>(Trig_Coeffs[Z_X_COMP]));
 
-	*yptr = (x * (long)Trig_Coeffs[X_Y_COMP]) +
-			(y * (long)Trig_Coeffs[Y_Y_COMP]) +
-			(z * (long)Trig_Coeffs[Z_Y_COMP]);
+	*yptr = (x * static_cast<long>(Trig_Coeffs[X_Y_COMP])) +
+			(y * static_cast<long>(Trig_Coeffs[Y_Y_COMP])) +
+			(z * static_cast<long>(Trig_Coeffs[Z_Y_COMP]));
 
-	*zptr = (x * (long)Trig_Coeffs[X_Z_COMP]) +
-			(y * (long)Trig_Coeffs[Y_Z_COMP]) +
-			(z * (long)Trig_Coeffs[Z_Z_COMP]);
+	*zptr = (x * static_cast<long>(Trig_Coeffs[X_Z_COMP])) +
+			(y * static_cast<long>(Trig_Coeffs[Y_Z_COMP])) +
+			(z * static_cast<long>(Trig_Coeffs[Z_Z_COMP]));
 	}
 
 /*	======================================================================================= */
@@ -307,17 +307,17 @@ long TransformCoordinates( COORD_3D *cptr,
 		cptr++;
 
 		// rotate current co-ordinate
-		trans_x = (x * (long)Trig_Coeffs[X_X_COMP]) +
-				  (y * (long)Trig_Coeffs[X_Y_COMP]) +
-				  (z * (long)Trig_Coeffs[X_Z_COMP]);
+		trans_x = (x * static_cast<long>(Trig_Coeffs[X_X_COMP])) +
+				  (y * static_cast<long>(Trig_Coeffs[X_Y_COMP])) +
+				  (z * static_cast<long>(Trig_Coeffs[X_Z_COMP]));
 
-		trans_y = (x * (long)Trig_Coeffs[Y_X_COMP]) +
-				  (y * (long)Trig_Coeffs[Y_Y_COMP]) +
-				  (z * (long)Trig_Coeffs[Y_Z_COMP]);
+		trans_y = (x * static_cast<long>(Trig_Coeffs[Y_X_COMP])) +
+				  (y * static_cast<long>(Trig_Coeffs[Y_Y_COMP])) +
+				  (z * static_cast<long>(Trig_Coeffs[Y_Z_COMP]));
 
-		trans_z = (x * (long)Trig_Coeffs[Z_X_COMP]) +
-				  (y * (long)Trig_Coeffs[Z_Y_COMP]) +
-				  (z * (long)Trig_Coeffs[Z_Z_COMP]);
+		trans_z = (x * static_cast<long>(Trig_Coeffs[Z_X_COMP])) +
+				  (y * static_cast<long>(Trig_Coeffs[Z_Y_COMP])) +
+				  (z * static_cast<long>(Trig_Coeffs[Z_Z_COMP]));
 
 		// add world offsets
 		trans_x += World_X_Offset;
@@ -546,16 +546,16 @@ void Line( long c1,			// co-ordinate offset for line, point 1
 	x2 = Screen_Coords[c2].x;
 	y2 = Screen_Coords[c2].y;
 
-    TLVertices[0].sx = (float)x1;      // screen x
-    TLVertices[0].sy = (float)y1;      // screen y
+    TLVertices[0].sx = static_cast<float>(x1);      // screen x
+    TLVertices[0].sy = static_cast<float>(y1);      // screen y
 
-    TLVertices[1].sx = (float)x2;      // screen x
-    TLVertices[1].sy = (float)y2;      // screen y
+    TLVertices[1].sx = static_cast<float>(x2);      // screen x
+    TLVertices[1].sy = static_cast<float>(y2);      // screen y
 
     for (i = 0; i < sides; i++)
         {
-        TLVertices[i].sz = (float)300.0;	// not needed unless Z buffering
-        TLVertices[i].rhw = (float)1.0;		// shouldn't be texture mapping a line
+        TLVertices[i].sz = static_cast<float>(300.0);	// not needed unless Z buffering
+        TLVertices[i].rhw = static_cast<float>(1.0);		// shouldn't be texture mapping a line
 
         TLVertices[i].color = Line_Colour;
         TLVertices[i].specular = RGB_MAKE(0,0,0);
@@ -822,16 +822,16 @@ void LineZClipped( long c1,			// co-ordinate offset for line, point 1
 		y2 = Screen_Coords[c2].y;
 		}
 
-    TLVertices[0].sx = (float)x1;      // screen x
-    TLVertices[0].sy = (float)y1;      // screen y
+    TLVertices[0].sx = static_cast<float>(x1);      // screen x
+    TLVertices[0].sy = static_cast<float>(y1);      // screen y
 
-    TLVertices[1].sx = (float)x2;      // screen x
-    TLVertices[1].sy = (float)y2;      // screen y
+    TLVertices[1].sx = static_cast<float>(x2);      // screen x
+    TLVertices[1].sy = static_cast<float>(y2);      // screen y
 
     for (i = 0; i < sides; i++)
         {
-        TLVertices[i].sz = (float)300.0;	// not needed unless Z buffering
-        TLVertices[i].rhw = (float)1.0;		// shouldn't be texture mapping a line
+        TLVertices[i].sz = static_cast<float>(300.0);	// not needed unless Z buffering
+        TLVertices[i].rhw = static_cast<float>(1.0);		// shouldn't be texture mapping a line
 
         TLVertices[i].color = Line_Colour;
         TLVertices[i].specular = RGB_MAKE(0,0,0);
@@ -920,10 +920,10 @@ void LockViewpointToTarget( long viewpoint_x,
 	*viewpoint_y_angle = LockAngle(opp, adj, FALSE);
 
 	// x angle
-	a = (double)((target_x - viewpoint_x) >> LOG_PRECISION);
-	b = (double)((target_z - viewpoint_z) >> LOG_PRECISION);
+	a = static_cast<double>((target_x - viewpoint_x) >> LOG_PRECISION);
+	b = static_cast<double>((target_z - viewpoint_z) >> LOG_PRECISION);
 	h = sqrt((a*a) + (b*b));
-	adj = (long)(h * PRECISION);
+	adj = static_cast<long>(h * PRECISION);
 	opp = target_y - viewpoint_y;
 	*viewpoint_x_angle = LockAngle(opp, adj, FALSE);
 
@@ -938,22 +938,22 @@ static long LockAngle( long opposite,
 	long viewpoint_angle;
 	double o, a, radians, angle;
 
-	o = (double)opposite;
-	a = (double)adjacent;
+	o = static_cast<double>(opposite);
+	a = static_cast<double>(adjacent);
 
 	// use inverse tan to calculate basic angle in radians
 	if (a == 0)		// prevent division by zero
-		radians = (double)PI / (double)2;	// 90 degrees
+		radians = static_cast<double>(PI) / static_cast<double>(2);	// 90 degrees
 	else
 		radians = atan(o/a);	// inverse tan
 
 	// convert radians to internal angle (also round up)
-	angle = ((radians * (double)MAX_ANGLE) / ((double)2 * (double)PI));
+	angle = ((radians * static_cast<double>(MAX_ANGLE)) / (static_cast<double>(2) * static_cast<double>(PI)));
 	// convert to absolute and round up as follows (because abs() isn't for doubles)
 	if (angle > 0)
-		viewpoint_angle = (long)(angle + (double)0.5);
+		viewpoint_angle = static_cast<long>(angle + static_cast<double>(0.5));
 	else
-		viewpoint_angle = (long)((double)0.5 - angle);
+		viewpoint_angle = static_cast<long>(static_cast<double>(0.5) - angle);
 
 	// convert angle from first quadrant to full range
 	if (o >= 0)
@@ -961,12 +961,12 @@ static long LockAngle( long opposite,
 		if (a >= 0)
 			{
 			// first quadrant
-			viewpoint_angle = (long)angle;
+			viewpoint_angle = static_cast<long>(angle);
 			}
 		else
 			{
 			// second quadrant
-			viewpoint_angle = (long)angle + _180_DEGREES;
+			viewpoint_angle = static_cast<long>(angle) + _180_DEGREES;
 			}
 		}
 	else
@@ -974,12 +974,12 @@ static long LockAngle( long opposite,
 		if (a <= 0)
 			{
 			// third quadrant
-			viewpoint_angle = (long)angle + _180_DEGREES;
+			viewpoint_angle = static_cast<long>(angle) + _180_DEGREES;
 			}
 		else
 			{
 			// fourth quadrant
-			viewpoint_angle = (long)angle + _360_DEGREES;
+			viewpoint_angle = static_cast<long>(angle) + _360_DEGREES;
 			}
 		}
 
@@ -1016,7 +1016,10 @@ HRESULT CreatePolygonVertexBuffer (IDirect3DDevice9 *pd3dDevice)
 	{
 		if( FAILED( pd3dDevice->CreateVertexBuffer( MAX_POLY_SIDES*sizeof(TRANSFORMEDVERTEX),
 				D3DUSAGE_WRITEONLY, D3DFVF_TRANSFORMEDVERTEX, D3DPOOL_DEFAULT, &pPolygonVB, NULL ) ) )
+		{
+			OutputDebugStringW(L"ERROR: Failed to create polygon vertex buffer\n");
 			return E_FAIL;
+		}
 	}
 
 	return S_OK;
@@ -1042,14 +1045,18 @@ void DrawPolygon( POINT *pptr,
 		return;
 
 	if( FAILED( pPolygonVB->Lock( 0, sides*sizeof(TRANSFORMEDVERTEX), (void**)&pVertices, 0 ) ) )
+	{
+		OutputDebugStringW(L"ERROR: Failed to lock polygon vertex buffer\n");
 		return;
+	}
 
     for (i = 0; i < sides; i++)
-    {
-		pVertices[i].x = (float)pptr[i].x;      // screen x
-		pVertices[i].y = (float)pptr[i].y;      // screen y
-		pVertices[i].z = (float)0.5f;			// not needed unless Z buffering
-		pVertices[i].rhw = (float)1.0f;
+        {
+
+		pVertices[i].x = static_cast<float>(pptr[i].x);      // screen x
+		pVertices[i].y = static_cast<float>(pptr[i].y);      // screen y
+		pVertices[i].z = 0.5f;			// not needed unless Z buffering
+		pVertices[i].rhw = 1.0f;
 		pVertices[i].color = Fill_Colour;
     }
 

@@ -8,6 +8,13 @@
 #define	CAR_WIDTH	64
 #define	CAR_LENGTH	128
 
+// Wheel rotation speed constants
+#define WHEEL_SPEED_LOW_THRESHOLD   0x800    // Threshold for low speed wheel calculation
+#define WHEEL_SPEED_HIGH_OFFSET     0x3000   // Added to high speed wheel calculation
+#define WHEEL_SPEED_MAX             0xffff   // Maximum wheel rotation speed
+#define WHEEL_SPEED_MAX_CLAMPED     0xff00   // Clamped maximum wheel speed
+#define WHEEL_ANGLE_MASK            0xfffff  // Mask for wheel angle wrapping
+
 // new new controls for Car Behaviour, Player 1
 // must not clash with other KEY definitions
 #define KEY_P1_LEFT		0x00000001l
