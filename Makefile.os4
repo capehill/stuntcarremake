@@ -6,11 +6,11 @@ CC=g++
 
 DEBUG=0
 
-FLAGS+= #-fpermissive
-CFLAGS=$(FLAGS) -Wno-write-strings -DUSE_SDL
+FLAGS+=
+CFLAGS=$(FLAGS) -Wno-write-strings -DUSE_SDL -DUSE_SDL2
 LDFLAGS=$(FLAGS)
 
-LIBS = -lSDL -lSDL_ttf -lfreetype -lopenal -lpthread
+LIBS =  -lSDL2 -lSDL2_ttf -lharfbuzz -lfreetype -lopenal -lpng -lz -lpthread -athread=native
 
 PROFILE=0
 
@@ -27,7 +27,7 @@ ifeq ($(PROFILE),1)
 	CFLAGS+= -pg
 endif
 
-CFLAGS += -I. -ICommon -I/Code/git/glm
+CFLAGS += -I. -ICommon -I/SDK/local/common/include/glm
 
 ifeq ($(DEBUG),1)
 	CFLAGS+= -DDEBUG_ON -DDEBUG_COMP -DDEBUG_SPOTFX_SOUND -DDEBUG_VIEWPORT

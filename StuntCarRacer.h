@@ -39,6 +39,7 @@ struct UTVERTEX
     DWORD color;		// The vertex diffuse color value
 };
 */
+#ifndef __amigaos4__
 #ifndef USE_SDL
 // Untransformed coloured textured vertex
 struct UTVERTEX
@@ -47,6 +48,7 @@ struct UTVERTEX
     DWORD color;		// The vertex diffuse color value
 	FLOAT tu,tv;		// The texture co-ordinates
 };
+#endif
 #endif
 
 /*	============================== */

@@ -46,9 +46,11 @@
 
 // DX -> OpenGL inspired by forsaken project
 typedef uint32_t DWORD;
+#ifndef __amigaos4__
 typedef uint8_t BYTE;
 typedef uint16_t WORD;
 typedef uint32_t BOOL;
+#endif
 
 typedef const wchar_t* LPCWSTR;
 

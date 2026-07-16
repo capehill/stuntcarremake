@@ -828,6 +828,7 @@ void DrawCockpit (IDirect3DDevice9 *pd3dDevice)
 	if(GL_MSAA)
 		glDisable(GL_MULTISAMPLE);
 #endif
+#endif
 	// Get current screen dimensions and calculate scale factors
 	long current_width, current_height;
 	GetScreenDimensions(&current_width, &current_height);

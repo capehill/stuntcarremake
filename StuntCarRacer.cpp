@@ -1286,7 +1286,7 @@ static void HandleTrackPreview( CDXUTTextHelper &txtHelper )
 	const D3DSURFACE_DESC *pd3dsdBackBuffer = DXUTGetBackBufferSurfaceDesc();
 	float textScale = GetTextScale();
 	txtHelper.SetInsertionPos( static_cast<int>((2+(wideScreen?10:0)) * textScale), static_cast<int>(pd3dsdBackBuffer->Height-15*9*textScale) );
-	txtHelper.DrawFormattedTextLine( "Selected track - " STRING L".  Press 'S' to start game", (TrackID == NO_TRACK ? "None" : GetTrackName(TrackID)));
+	txtHelper.DrawFormattedTextLine( "Selected track - " STRING ".  Press 'S' to start game", (TrackID == NO_TRACK ? "None" : GetTrackName(TrackID)));
 	txtHelper.DrawTextLine( "'M' for track menu, Escape to quit");
 	txtHelper.DrawTextLine( "(Press F4 to change scenery, F9 / F10 to adjust frame rate)" );
 
@@ -1987,7 +1987,37 @@ static void handle_joystick(SDL_Joystick* joy)
 
 static void read_keyboard_state()
 {
+#ifdef USE_SDL2
+    //int numkeys = 0;
+    const Uint8 *keys = SDL_GetKeyboardState(NULL);
+    if (!keys) {
+        return;
+    }
+
+    if (keys[SDL_SCANCODE_LEFT] || keys[SDL_SCANCODE_A]) {
+        lastInput |= KEY_P1_LEFT;
+    }
+
+    if (keys[SDL_SCANCODE_RIGHT] || keys[SDL_SCANCODE_D]) {
+        lastInput |= KEY_P1_RIGHT;
+    }
+
+    if (keys[SDL_SCANCODE_UP] || keys[SDL_SCANCODE_W]) {
+        lastInput |= KEY_P1_ACCEL;
+    }
+
+    if (keys[SDL_SCANCODE_DOWN] || keys[SDL_SCANCODE_S]) {
+        lastInput |= KEY_P1_BRAKE;
+    }
+
+    if (keys[SDL_SCANCODE_SPACE] || keys[SDL_SCANCODE_LSHIFT] || keys[SDL_SCANCODE_RSHIFT]) {
+        lastInput |= KEY_P1_BOOST;
+    }
+#else
     Uint8 *keys = SDL_GetKeyState(NULL);
+    if (!keys) {
+        return;
+    }
 
     if (keys[SDLK_LEFT] || keys[SDLK_a]) {
         lastInput |= KEY_P1_LEFT;
@@ -2008,6 +2038,7 @@ static void read_keyboard_state()
     if (keys[SDLK_SPACE] || keys[SDLK_LSHIFT] || keys[SDLK_RSHIFT]) {
         lastInput |= KEY_P1_BOOST;
     }
+#endif
 }
 
 bool process_events(SDL_Joystick* joystick)
@@ -2196,6 +2227,7 @@ int main(int argc, const char** argv)
 	char maintitle[50] = {0};
 	sprintf(maintitle, "StuntCarRemake v%d.%02d.%02d", V_MAJOR, V_MINOR, V_PATCH);
 	printf("%s\n", maintitle);
+#ifndef __amigaos4__
 	// get executable folder and cd into it...
 	// this is linux only, will not work on BSD or macOS
 	char buf[500];
@@ -2208,6 +2240,7 @@ int main(int argc, const char** argv)
 			printf("chdir(\"%s\")\n", buf);
 		}
 	}
+#endif
 #ifdef USE_SDL2
 	SDL_GLContext context = NULL;
 	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK)==-1) {
@@ -2539,6 +2572,7 @@ int main(int argc, const char** argv)
 	close_joy(joystick);
 
 	TTF_Quit();
+    SDL_GL_DeleteContext(context);
 	SDL_Quit();
 
 	exit(0);

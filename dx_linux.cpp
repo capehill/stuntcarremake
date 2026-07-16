@@ -26,21 +26,6 @@ static const char* filename[] = {
 
 void IDirect3DTexture9::LoadTexture(const char* name)
 {
-/* TODO: old code, remove if not needed
-	if (texID) {
-        glDeleteTextures(1, &texID);
-	}
-
-    glGenTextures(1, &texID);
-
-	FILE* file = fopen("atlas.bin", "rb");
-
-    if (!file) {
-		printf("Warning, 'atlas.bin' not loaded\n");
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-		return;
-	}
-	*/
 	if (texID) glDeleteTextures(1, &texID);
 	glGenTextures(1, &texID);
 	int x,y,n;
@@ -84,52 +69,6 @@ void IDirect3DTexture9::LoadTexture(const char* name)
 	}
 	UnBind();
 	if (img) free(img);
-}
-
-    // Load a binary RGBA bigendian texture and feed it to OpenGL
-    const int size = 1024;
-
-    w = w2 = size;
-    h = h2 = size;
-    int pitch = 4 * w;
-
-    char* buf = (char*)malloc(pitch * h);
-
-    if (buf) {
-        for (int y = 0; y < h; y++) {
-            Uint32* ptr = (Uint32*)(buf + y * pitch);
-
-            for (int x = 0; x < w; x++) {
-                Uint32 col;
-
-                fread(&col, sizeof(col), 1, file);
-                ptr[x] = SDL_SwapBE32(col);
-            }
-        }
-
-    	Bind();
-
-    	// ugly... Just blindly load the texture without much check!
-    	glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_MIN_FILTER , GL_LINEAR);
-    	glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_MAG_FILTER , GL_LINEAR);
-    	glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_WRAP_S , GL_CLAMP_TO_EDGE );
-    	glTexParameteri(GL_TEXTURE_2D , GL_TEXTURE_WRAP_T , GL_CLAMP_TO_EDGE );
-
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-
-    	// simple and hugly way to make the texture upside down...
-    	for (int i = 0; i < h; i++) {
-    		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, (h-1)-i, w, 1, GL_RGBA, GL_UNSIGNED_BYTE, buf + (pitch * i));
-    	}
-
-    	UnBind();
-
-        free(buf);
-    } else {
-        printf("malloc failed\n");
-    }
-
-    fclose(file);
 }
 
 struct sound_buffer_t {
